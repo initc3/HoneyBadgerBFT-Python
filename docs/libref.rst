@@ -50,9 +50,6 @@ Elliptic Curve Digital Signature Algorithm
 .. automodule:: honeybadgerbft.crypto.ecdsa
     :members:
 
-.. automodule:: honeybadgerbft.crypto.ecdsa.ecdsa_ssl
-    :members:
-
 .. automodule:: honeybadgerbft.crypto.ecdsa.generate_keys_ecdsa
     :members:
 

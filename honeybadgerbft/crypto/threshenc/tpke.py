@@ -1,4 +1,6 @@
 from charm.toolbox.pairinggroup import PairingGroup, ZR, G1, G2, pair
+
+from functools import reduce
 from base64 import encodestring, decodestring
 from operator import mul
 
@@ -32,25 +34,25 @@ def serialize(g):
 def deserialize0(g):
     """ """
     # Only work in G1 here
-    return group.deserialize('0:'+encodestring(g))
+    return group.deserialize(b'0:'+encodestring(g))
 
 
 def deserialize1(g):
     """ """
     # Only work in G1 here
-    return group.deserialize('1:'+encodestring(g))
+    return group.deserialize(b'1:'+encodestring(g))
 
 
 def deserialize2(g):
     """ """
     # Only work in G1 here
-    return group.deserialize('2:'+encodestring(g))
+    return group.deserialize(b'2:'+encodestring(g))
 
 
 def xor(x, y):
     """ """
     assert len(x) == len(y) == 32
-    return ''.join(chr(ord(x_) ^ ord(y_)) for x_, y_ in zip(x, y))
+    return b''.join(bytes([x_ ^ y_]) for x_, y_ in zip(x, y))
 
 
 g1 = group.hash('geng1', G1)
@@ -114,21 +116,21 @@ class TPKEPublicKey(object):
         C = (U, V, W)
         return C
 
-    def verify_ciphertext(self, (U, V, W)):
+    def verify_ciphertext(self, U, V, W):
         """ """
         # Check correctness of ciphertext
         H = hashH(U, V)
         assert pair(g1, W) == pair(U, H)
         return True
 
-    def verify_share(self, i, U_i, (U, V, W)):
+    def verify_share(self, i, U_i, U, V, W):
         """ """
         assert 0 <= i < self.l
         Y_i = self.VKs[i]
         assert pair(U_i, g2) == pair(U, Y_i)
         return True
 
-    def combine_shares(self, (U, V, W), shares):
+    def combine_shares(self, U, V, W, shares):
         """ """
         # sigs: a mapping from idx -> sig
         S = set(shares.keys())
@@ -138,12 +140,12 @@ class TPKEPublicKey(object):
         # assert self.verify_ciphertext((U,V,W))
 
         # ASSUMPTION
-        for j, share in shares.iteritems():
-            self.verify_share(j, share, (U, V, W))
+        for j, share in shares.items():
+            self.verify_share(j, share, U, V, W)
 
         res = reduce(mul,
                      [share ** self.lagrange(S, j)
-                      for j, share in shares.iteritems()], ONE)
+                      for j, share in shares.items()], ONE)
         return xor(hashG(res), V)
 
 
@@ -156,10 +158,10 @@ class TPKEPrivateKey(TPKEPublicKey):
         self.i = i
         self.SK = SK
 
-    def decrypt_share(self, (U, V, W)):
+    def decrypt_share(self, U, V, W):
         """ """
         # ASSUMPTION
-        assert self.verify_ciphertext((U, V, W))
+        assert self.verify_ciphertext(U, V, W)
 
         # print U, V, W
         # print U

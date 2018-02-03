@@ -14,18 +14,22 @@ def encode(K, N, m):
 
     :param int K: K
     :param int N: number of blocks to encode string ``m`` into.
-    :param int m: string to encode.
+    :param bytes m: bytestring to encode.
 
     :return list: Erasure codes resulting from encoding ``m`` into
         ``N`` blocks using ``zfec`` lib.
 
     """
+    try:
+        m = m.encode()
+    except AttributeError:
+        pass
     encoder = zfec.Encoder(K, N)
     assert K <= 256  # TODO: Record this assumption!
     # pad m to a multiple of K bytes
     padlen = K - (len(m) % K)
-    m += padlen * chr(K-padlen)
-    step = len(m)/K
+    m += padlen * chr(K-padlen).encode()
+    step = len(m)//K
     blocks = [m[i*step: (i+1)*step] for i in range(K)]
     stripes = encoder.encode(blocks)
     return stripes
@@ -54,8 +58,8 @@ def decode(K, N, stripes):
         raise ValueError("Too few to recover")
     decoder = zfec.Decoder(K, N)
     rec = decoder.decode(blocks, blocknums)
-    m = ''.join(rec)
-    padlen = K - ord(m[-1])
+    m = b''.join(rec)
+    padlen = K - m[-1]
     m = m[:-padlen]
     return m
 
@@ -64,7 +68,11 @@ def decode(K, N, stripes):
 #    Merkle tree    #
 #####################
 def hash(x):
-    assert type(x) is str
+    assert isinstance(x, (str, bytes))
+    try:
+        x = x.encode()
+    except AttributeError:
+        pass
     return hashlib.sha256(x).digest()
 
 
@@ -82,7 +90,7 @@ def merkleTree(strList):
     N = len(strList)
     assert N >= 1
     bottomrow = 2 ** ceil(math.log(N, 2))
-    mt = [""] * (2 * bottomrow)
+    mt = [b''] * (2 * bottomrow)
     for i in range(N):
         mt[bottomrow + i] = hash(strList[i])
     for i in range(bottomrow - 1, 0, -1):
@@ -97,7 +105,7 @@ def getMerkleBranch(index, mt):
     t = index + (len(mt) >> 1)
     while t > 1:
         res.append(mt[t ^ 1])  # we are picking up the sibling
-        t /= 2
+        t //= 2
     return res
 
 
@@ -105,7 +113,9 @@ def merkleVerify(N, val, roothash, branch, index):
     """Verify a merkle tree branch proof
     """
     assert 0 <= index < N
-    assert type(val) is str
+    # XXX Python 3 related issue, for now let's tolerate both bytes and
+    # strings
+    assert isinstance(val, (str, bytes))
     assert len(branch) == ceil(math.log(N, 2))
     # Index has information on whether we are facing a left sibling or a right sibling
     tmp = hash(val)
@@ -114,7 +124,7 @@ def merkleVerify(N, val, roothash, branch, index):
         tmp = hash((tindex & 1) and br + tmp or tmp + br)
         tindex >>= 1
     if tmp != roothash:
-        print "Verification failed with", hash(val), roothash, branch, tmp == roothash
+        print("Verification failed with", hash(val), roothash, branch, tmp == roothash)
         return False
     return True
 
@@ -185,8 +195,11 @@ def reliablebroadcast(sid, pid, N, f, leader, input, receive, send):
     if pid == leader:
         # The leader erasure encodes the input, sending one strip to each participant
         m = input()  # block until an input is received
-        assert type(m) is str
-        # print 'Input received: %d bytes' % (len(m),)
+        # XXX Python 3 related issue, for now let's tolerate both bytes and
+        # strings
+        # (with Python 2 it used to be: assert type(m) is str)
+        assert isinstance(m, (str, bytes))
+        # print('Input received: %d bytes' % (len(m),))
 
         stripes = encode(K, N, m)
         mt = merkleTree(stripes)  # full binary tree
@@ -222,12 +235,12 @@ def reliablebroadcast(sid, pid, N, f, leader, input, receive, send):
             # Validation
             (_, roothash, branch, stripe) = msg
             if sender != leader:
-                print "VAL message from other than leader:", sender
+                print("VAL message from other than leader:", sender)
                 continue
             try:
                 assert merkleVerify(N, stripe, roothash, branch, pid)
-            except Exception, e:
-                print "Failed to validate VAL message:", e
+            except Exception as e:
+                print("Failed to validate VAL message:", e)
                 continue
 
             # Update
@@ -239,12 +252,12 @@ def reliablebroadcast(sid, pid, N, f, leader, input, receive, send):
             # Validation
             if roothash in stripes and stripes[roothash][sender] is not None \
                or sender in echoSenders:
-                print "Redundant ECHO"
+                print("Redundant ECHO")
                 continue
             try:
                 assert merkleVerify(N, stripe, roothash, branch, sender)
             except AssertionError as e:
-                print "Failed to validate ECHO message:", e
+                print("Failed to validate ECHO message:", e)
                 continue
 
             # Update
@@ -263,7 +276,7 @@ def reliablebroadcast(sid, pid, N, f, leader, input, receive, send):
             (_, roothash) = msg
             # Validation
             if sender in ready[roothash] or sender in readySenders:
-                print "Redundant READY"
+                print("Redundant READY")
                 continue
 
             # Update

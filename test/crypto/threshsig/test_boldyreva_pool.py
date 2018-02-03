@@ -1,5 +1,7 @@
 from multiprocessing.pool import Pool
 
+from pytest import mark
+
 
 def test_initialize(tbls_public_key):
     from honeybadgerbft.crypto.threshsig.boldyreva_pool import (
@@ -21,7 +23,7 @@ def test_combine_and_verify(tbls_public_key, tbls_private_keys):
     signature_shares = {sk.i: sk.sign(h) for sk in tbls_private_keys}
     signature_shares = {
         k: v for k, v in signature_shares.items()
-        if k in signature_shares.keys()[:tbls_public_key.k]
+        if k in list(signature_shares.keys())[:tbls_public_key.k]
     }
     initialize(tbls_public_key)
     from honeybadgerbft.crypto.threshsig.boldyreva_pool import _pool
@@ -38,7 +40,7 @@ def test__combine_and_verify(tbls_public_key, tbls_private_keys):
     signature_shares = {sk.i: sk.sign(h) for sk in tbls_private_keys}
     serialized_signature_shares = {
         k: serialize(v) for k, v in signature_shares.items()
-        if k in signature_shares.keys()[:tbls_public_key.k]
+        if k in list(signature_shares.keys())[:tbls_public_key.k]
     }
     _combine_and_verify(
         serialized_h, serialized_signature_shares, pk=tbls_public_key)

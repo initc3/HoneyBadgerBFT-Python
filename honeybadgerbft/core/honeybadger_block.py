@@ -2,7 +2,7 @@ from ..crypto.threshenc import tpke
 import os
 
 
-def serialize_UVW((U, V, W)):
+def serialize_UVW(U, V, W):
     # U: element of g1 (65 byte serialized for SS512)
     U = tpke.serialize(U)
     assert len(U) == 65
@@ -11,18 +11,16 @@ def serialize_UVW((U, V, W)):
     # W: element of g2 (32 byte serialized for SS512)
     W = tpke.serialize(W)
     assert len(W) == 65
-    UVW = U + V + W
-    return UVW
+    return U, V, W
 
 
-def deserialize_UVW(UVW):
-    assert len(UVW) == 65+32+65
-    U = UVW[:65]
-    V = UVW[65:-65]
-    W = UVW[-65:]
+def deserialize_UVW(U, V, W):
+    assert len(U) == 65
+    assert len(V) == 32
+    assert len(W) == 65
     U = tpke.deserialize1(U)
     W = tpke.deserialize2(W)
-    return (U, V, W)
+    return U, V, W
 
 
 def honeybadger_block(pid, N, f, PK, SK, propose_in, acs_in, acs_out, tpke_bcast, tpke_recv):
@@ -50,8 +48,8 @@ def honeybadger_block(pid, N, f, PK, SK, propose_in, acs_in, acs_out, tpke_bcast
     ciphertext = tpke.encrypt(key, prop)
     tkey = PK.encrypt(key)
 
-    import cPickle as pickle
-    to_acs = pickle.dumps((serialize_UVW(tkey), ciphertext))
+    import pickle
+    to_acs = pickle.dumps((serialize_UVW(*tkey), ciphertext))
     acs_in(to_acs)
 
     # Wait for the corresponding ACS to finish
@@ -68,8 +66,8 @@ def honeybadger_block(pid, N, f, PK, SK, propose_in, acs_in, acs_out, tpke_bcast
             my_shares.append(None)
             continue
         (tkey, ciph) = pickle.loads(v)
-        tkey = deserialize_UVW(tkey)
-        share = SK.decrypt_share(tkey)
+        tkey = deserialize_UVW(*tkey)
+        share = SK.decrypt_share(*tkey)
         # share is of the form: U_i, an element of group1
         my_shares.append(share)
 
@@ -81,7 +79,7 @@ def honeybadger_block(pid, N, f, PK, SK, propose_in, acs_in, acs_out, tpke_bcast
         (j, shares) = tpke_recv()
         if j in shares_received:
             # TODO: alert that we received a duplicate
-            print 'Received a duplicate decryption share from', j
+            print('Received a duplicate decryption share from', j)
             continue
         shares_received[j] = shares
 
@@ -94,11 +92,11 @@ def honeybadger_block(pid, N, f, PK, SK, propose_in, acs_in, acs_out, tpke_bcast
         if v is None:
             continue
         svec = {}
-        for j, shares in shares_received.iteritems():
+        for j, shares in shares_received.items():
             svec[j] = shares[i]     # Party j's share of broadcast i
         (tkey, ciph) = pickle.loads(v)
-        tkey = deserialize_UVW(tkey)
-        key = PK.combine_shares(tkey, svec)
+        tkey = deserialize_UVW(*tkey)
+        key = PK.combine_shares(*tkey, svec)
         plain = tpke.decrypt(key, ciph)
         decryptions.append(plain)
     # print 'Done!', decryptions

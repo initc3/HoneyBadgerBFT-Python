@@ -9,7 +9,7 @@ Dependencies:
 from charm.toolbox.pairinggroup import PairingGroup, ZR, G1, G2, pair
 from base64 import encodestring, decodestring
 from operator import mul
-
+from functools import reduce
 
 # group = PairingGroup('SS512')
 # group = PairingGroup('MNT159')
@@ -25,19 +25,19 @@ def serialize(g):
 def deserialize0(g):
     """ """
     # Only work in G1 here
-    return group.deserialize('0:'+encodestring(g))
+    return group.deserialize(b'0:'+encodestring(g))
 
 
 def deserialize1(g):
     """ """
     # Only work in G1 here
-    return group.deserialize('1:'+encodestring(g))
+    return group.deserialize(b'1:'+encodestring(g))
 
 
 def deserialize2(g):
     """ """
     # Only work in G1 here
-    return group.deserialize('2:'+encodestring(g))
+    return group.deserialize(b'2:'+encodestring(g))
 
 
 g1 = group.hash('geng1', G1)
@@ -72,15 +72,15 @@ class TBLSPublicKey(object):
         """ """
         d = dict(self.__dict__)
         d['VK'] = serialize(self.VK)
-        d['VKs'] = map(serialize, self.VKs)
+        d['VKs'] = list(map(serialize, self.VKs))
         return d
 
     def __setstate__(self, d):
         """ """
         self.__dict__ = d
         self.VK = deserialize2(self.VK)
-        self.VKs = map(deserialize2, self.VKs)
-        print "I'm being depickled"
+        self.VKs = list(map(deserialize2, self.VKs))
+        print("I'm being depickled")
 
     def lagrange(self, S, j):
         """ """
@@ -121,7 +121,7 @@ class TBLSPublicKey(object):
 
         res = reduce(mul,
                      [sig ** self.lagrange(S, j)
-                      for j, sig in sigs.iteritems()], 1)
+                      for j, sig in sigs.items()], 1)
         return res
 
 

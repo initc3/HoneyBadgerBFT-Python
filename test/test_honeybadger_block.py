@@ -8,19 +8,22 @@ from honeybadgerbft.core.binaryagreement import binaryagreement
 from honeybadgerbft.core.reliablebroadcast import reliablebroadcast
 from honeybadgerbft.core.commonsubset import commonsubset
 import honeybadgerbft.core.honeybadger_block
-reload(honeybadgerbft.core.honeybadger_block)
+#reload(honeybadgerbft.core.honeybadger_block)
 from honeybadgerbft.core.honeybadger_block import honeybadger_block
 from honeybadgerbft.crypto.threshsig.boldyreva import dealer
 from honeybadgerbft.crypto.threshenc import tpke
 from collections import defaultdict
+
+from pytest import mark
+
 
 def simple_router(N, maxdelay=0.005, seed=None):
     """Builds a set of connected channels, with random delay
     @return (receives, sends)
     """
     rnd = random.Random(seed)
-    #if seed is not None: print 'ROUTER SEED: %f' % (seed,)
-    
+    #if seed is not None: print('ROUTER SEED: %f' % (seed,))
+
     queues = [Queue() for _ in range(N)]
     _threads = []
 
@@ -28,17 +31,17 @@ def simple_router(N, maxdelay=0.005, seed=None):
         def _send(j, o):
             delay = rnd.random() * maxdelay
             #delay = 0.1
-            #print 'SEND   %8s [%2d -> %2d] %2.1f' % (o[0], i, j, delay*1000), o[1:]
+            #print('SEND   %8s [%2d -> %2d] %2.1f' % (o[0], i, j, delay*1000), o[1:])
             gevent.spawn_later(delay, queues[j].put_nowait, (i,o))
         return _send
 
     def makeRecv(j):
         def _recv():
             (i,o) = queues[j].get()
-            #print 'RECV %8s [%2d -> %2d]' % (o[0], i, j)
+            #print('RECV %8s [%2d -> %2d]' % (o[0], i, j)
             return (i,o)
         return _recv
-        
+
     return ([makeSend(i) for i in range(N)],
             [makeRecv(j) for j in range(N)])
 
@@ -51,7 +54,7 @@ def _make_honeybadger(sid, pid, N, f, sPK, sSK, ePK, eSK, input, send, recv):
 
     def broadcast(o):
         for j in range(N): send(j, o)
-    
+
     coin_recvs = [None] * N
     aba_recvs  = [None] * N
     rbc_recvs  = [None] * N
@@ -121,9 +124,9 @@ def _test_honeybadger(N=4, f=1, seed=None):
     sid = 'sidA'
     sPK, sSKs = dealer(N, f+1, seed=seed)
     ePK, eSKs = tpke.dealer(N, f+1)
-    
+
     rnd = random.Random(seed)
-    #print 'SEED:', seed
+    #print('SEED:', seed)
     router_seed = rnd.random()
     sends, recvs = simple_router(N, seed=router_seed)
 
@@ -149,12 +152,13 @@ def _test_honeybadger(N=4, f=1, seed=None):
 
         # Consistency check
         assert len(set(outs)) == 1
-        
+
     except KeyboardInterrupt:
         gevent.killall(threads)
         raise
 
 
+#@mark.skip('python 3 problem with gevent')
 def test_honeybadger():
     _test_honeybadger()
 

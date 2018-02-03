@@ -1,15 +1,11 @@
-from ecdsa_ssl import KEY
 import argparse
-import cPickle
+import pickle
+
+from coincurve import PrivateKey
 
 
 def generate_key_list(players):
-    keylist = []
-    for i in range(players):
-        key = KEY()
-        key.generate()
-        keylist.append(key.get_secret())
-    return keylist
+    return [PrivateKey().secret for _ in range(players)]
 
 
 def main():
@@ -19,7 +15,7 @@ def main():
     args = parser.parse_args()
     players = int(args.players)
     keylist = generate_key_list(players)
-    print cPickle.dumps(keylist)
+    print(pickle.dumps(keylist))
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-import cPickle as pickle
+import pickle
 import random
 from base64 import encodestring
 
@@ -23,14 +23,22 @@ class TestTBLSPublicKey:
     def test_getstate(self, tbls_public_key, serialized_tbls_public_key_dict):
         original_dict = tbls_public_key.__dict__.copy()
         state_dict = tbls_public_key.__getstate__()
-        assert state_dict == serialized_tbls_public_key_dict
+        assert len(state_dict) == len(serialized_tbls_public_key_dict)
+        assert state_dict['k'] == serialized_tbls_public_key_dict['k']
+        assert state_dict['l'] == serialized_tbls_public_key_dict['l']
+        assert state_dict['VK'] == serialized_tbls_public_key_dict['VK']
+        assert state_dict['VKs'] == serialized_tbls_public_key_dict['VKs']
         assert tbls_public_key.__dict__ == original_dict
 
     def test_setstate(self, tbls_public_key, serialized_tbls_public_key_dict):
         from honeybadgerbft.crypto.threshsig.boldyreva import TBLSPublicKey
         unset_public_key = TBLSPublicKey(None, None, None, None)
         unset_public_key.__setstate__(serialized_tbls_public_key_dict)
-        assert unset_public_key.__dict__ == tbls_public_key.__dict__
+        assert len(unset_public_key.__dict__) == len(tbls_public_key.__dict__)
+        assert unset_public_key.__dict__['k'] == tbls_public_key.__dict__['k']
+        assert unset_public_key.__dict__['l'] == tbls_public_key.__dict__['l']
+        assert unset_public_key.__dict__['VK'] == tbls_public_key.__dict__['VK']
+        assert unset_public_key.__dict__['VKs'] == tbls_public_key.__dict__['VKs']
 
     def test_pickling_and_unpickling(self, tbls_public_key):
         pickled_obj = pickle.dumps(tbls_public_key)
@@ -50,7 +58,7 @@ def test_boldyreva():
     for SK in SKs:
         sigs[SK.i] = SK.sign(h)
 
-    SS = range(PK.l)
+    SS = list(range(PK.l))
     for i in range(10):
         random.shuffle(SS)
         S = set(SS[:PK.k])
@@ -64,6 +72,6 @@ def test_deserialize_arg(n, g, mocker):
     mocked_deserialize = mocker.patch.object(
         boldyreva.group, 'deserialize', autospec=True)
     deserialize_func = getattr(boldyreva, 'deserialize{}'.format(n))
-    base64_encoded_data = '{}:{}'.format(n, encodestring(g))
+    base64_encoded_data = '{}:{}'.format(n, encodestring(g).decode())
     deserialize_func(g)
-    mocked_deserialize.assert_called_once_with(base64_encoded_data)
+    mocked_deserialize.assert_called_once_with(base64_encoded_data.encode())

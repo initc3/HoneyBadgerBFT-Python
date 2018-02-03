@@ -1,5 +1,7 @@
 from collections import namedtuple
 
+from pytest import mark
+
 
 def test_generate_key_list():
     from honeybadgerbft.crypto.ecdsa.generate_keys_ecdsa import generate_key_list
