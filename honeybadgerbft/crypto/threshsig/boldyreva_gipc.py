@@ -1,6 +1,4 @@
-from .boldyreva import dealer, serialize, deserialize1
-from .boldyreva_pool import _combine_and_verify
-import gevent
+from .boldyreva import serialize, deserialize1
 import gipc
 import random
 
