@@ -166,10 +166,10 @@ class HoneyBadgerBFT():
 
         # Launch ACS, ABA, instances
         coin_recvs = [None] * N
-        aba_recvs = [None] * N
-        rbc_recvs = [None] * N
+        aba_recvs  = [None] * N  # noqa: E221
+        rbc_recvs  = [None] * N  # noqa: E221
 
-        aba_inputs = [Queue(1) for _ in range(N)]
+        aba_inputs  = [Queue(1) for _ in range(N)]  # noqa: E221
         aba_outputs = [Queue(1) for _ in range(N)]
         rbc_outputs = [Queue(1) for _ in range(N)]
 

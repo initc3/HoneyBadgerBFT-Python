@@ -93,7 +93,7 @@ class TPKEPublicKey(object):
         assert j in S
         assert 0 <= j < self.l
         num = reduce(mul, [0 - jj - 1 for jj in S if jj != j], ONE)
-        den = reduce(mul, [j - jj for jj in S if jj != j], ONE)
+        den = reduce(mul, [j - jj     for jj in S if jj != j], ONE)  # noqa: E272
         return num / den
 
     def encrypt(self, m):
