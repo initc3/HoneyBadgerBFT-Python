@@ -12,3 +12,7 @@ class UnknownTagError(BroadcastError):
 
 class RedundantMessageError(BroadcastError):
     """Raised when a rdundant message is received."""
+
+
+class AbandonedNodeError(HoneybadgerbftError):
+    """Raised when a node does not have enough peer to carry on a distirbuted task."""

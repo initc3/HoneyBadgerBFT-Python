@@ -2,7 +2,7 @@ import gevent
 from gevent.event import Event
 from collections import defaultdict
 
-from honeybadgerbft.exceptions import RedundantMessageError
+from honeybadgerbft.exceptions import RedundantMessageError, AbandonedNodeError
 
 
 def binaryagreement(sid, pid, N, f, coin, input, decide, broadcast, receive):
@@ -121,25 +121,38 @@ def binaryagreement(sid, pid, N, f, coin, input, decide, broadcast, receive):
         # Block until receiving the common coin value
         s = coin(r)
 
-        if len(values) == 1:
-            v = next(iter(values))
-            if v == s:
-                if already_decided is None:
-                    already_decided = v
-                    decide(v)
-                    # print('[sid:%s] [pid:%d] DECIDED %d in round %d' % (sid,pid,v,r))
-                elif already_decided == v:
-                    # Here corresponds to a proof that if one party
-                    # decides at round r, then in all the following
-                    # rounds, everybody will propose r as an
-                    # estimation. (Lemma 2, Lemma 1) An abandoned
-                    # party is a party who has decided but no enough
-                    # peers to help him end the loop.  Lemma: # of
-                    # abandoned party <= t
-                    # print('[sid:%s] [pid:%d] QUITTING in round %d' % (sid,pid,r)))
-                    _thread_recv.kill()
-                    return
-                est = v
-        else:
-            est = s
+        try:
+            est, already_decided = set_new_estimate(
+                values=values,
+                s=s,
+                already_decided=already_decided,
+                decide=decide,
+            )
+        except AbandonedNodeError:
+            # print('[sid:%s] [pid:%d] QUITTING in round %d' % (sid,pid,r)))
+            _thread_recv.kill()
+            return
+
         r += 1
+
+
+def set_new_estimate(*, values, s, already_decided, decide):
+    if len(values) == 1:
+        v = next(iter(values))
+        if v == s:
+            if already_decided is None:
+                already_decided = v
+                decide(v)
+            elif already_decided == v:
+                # Here corresponds to a proof that if one party
+                # decides at round r, then in all the following
+                # rounds, everybody will propose r as an
+                # estimation. (Lemma 2, Lemma 1) An abandoned
+                # party is a party who has decided but no enough
+                # peers to help him end the loop.  Lemma: # of
+                # abandoned party <= t
+                raise AbandonedNodeError
+        est = v
+    else:
+        est = s
+    return est, already_decided
