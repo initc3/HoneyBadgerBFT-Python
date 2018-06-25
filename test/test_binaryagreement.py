@@ -1,6 +1,8 @@
+import logging
 import unittest
 import gevent
 import random
+
 from gevent.event import Event
 from gevent.queue import Queue
 from honeybadgerbft.core.commoncoin import shared_coin
@@ -10,6 +12,7 @@ from collections import defaultdict
 
 from pytest import mark, raises
 
+logger = logging.getLogger(__name__)
 
 def simple_broadcast_router(N, maxdelay=0.005, seed=None):
     """Builds a set of connected channels, with random delay
@@ -88,6 +91,11 @@ def byzantine_broadcast_router(N, maxdelay=0.005, seed=None, **byzargs):
             [makeRecv(j) for j in range(N)])
 
 
+def release_held_messages(q, receivers):
+    for m in q:
+        receivers[m['receiver']].put((m['sender'], m['msg']))
+
+
 def dummy_coin(sid, N, f):
     counter = defaultdict(int)
     events = defaultdict(Event)
@@ -143,7 +151,7 @@ def test_binaryagreement_dummy():
     _test_binaryagreement_dummy()
 
 
-@mark.parametrize('msg_type', ('EST', 'AUX'))
+@mark.parametrize('msg_type', ('EST', 'AUX', 'CONF'))
 @mark.parametrize('byznode', (1, 2, 3))
 def test_binaryagreement_dummy_with_redundant_messages(byznode, msg_type):
     N = 4
@@ -267,13 +275,6 @@ def test_binaryagreement():
     for i in range(5): _test_binaryagreement(seed=i)
 
 
-@mark.xfail(
-    raises=NotImplementedError,
-    reason='Place holder for https://github.com/amiller/HoneyBadgerBFT/issues/59')
-def test_issue59_attack():
-    raise NotImplementedError("Placeholder test failure for Issue #59")
-
-
 @mark.parametrize('values,s,already_decided,expected_est,'
                   'expected_already_decided,expected_output', (
     ({0}, 0, None, 0, 0, 0),
@@ -340,3 +341,74 @@ def test_set_next_round_estimate_raises(values, s, already_decided):
             already_decided=already_decided,
             decide=None,
         )
+
+
+def test_issue59_attack(caplog):
+    from .byzantine import byz_ba_issue_59, broadcast_router
+    N = 4
+    f = 1
+    seed = None
+    sid = 'sidA'
+    rnd = random.Random(seed)
+    sends, recvs = broadcast_router(N)
+    threads = []
+    inputs = []
+    outputs = []
+
+    coins_seed = rnd.random()
+    coins = _make_coins(sid+'COIN', N, f, coins_seed)
+
+    for i in range(4):
+        inputs.append(Queue())
+        outputs.append(Queue())
+
+    t = gevent.spawn(byz_ba_issue_59, sid, 3, N, f, coins[3],
+                     inputs[3].get, outputs[3].put_nowait, sends[3], recvs[3])
+    threads.append(t)
+
+    for i in (2, 0, 1):
+        t = gevent.spawn(binaryagreement, sid, i, N, f, coins[i],
+                         inputs[i].get, outputs[i].put_nowait, sends[i], recvs[i])
+        threads.append(t)
+
+    inputs[0].put(0)    # A_0
+    inputs[1].put(0)    # A_1
+    inputs[2].put(1)    # B
+    inputs[3].put(0)    # F (x)
+
+    try:
+        outs = [outputs[i].get() for i in range(N)]
+    except gevent.hub.LoopExit:
+        ba_node_2_log_records = [
+            record for record in caplog.records
+            if record.nodeid == 2 and record.module == 'binaryagreement'
+        ]
+        round_0_records = [
+            record for record in ba_node_2_log_records if record.epoch == 0
+        ]
+        round_1_records = [
+            record for record in ba_node_2_log_records if record.epoch == 1
+        ]
+        conf_phase_record = [
+            record for record in round_0_records
+            if record.message == 'Completed CONF phase with values = {0, 1}'
+        ]
+        assert len(conf_phase_record) == 1
+        coin_value_record = [
+            record for record in round_0_records
+            if record.message.startswith('Received coin with value = ')
+        ]
+        assert len(coin_value_record) == 1
+        coin_value = coin_value_record[0].message.split('=')[1]
+        round_1_begin_log = [
+            record for record in round_1_records
+            if record.message.startswith('Starting with est = ')
+        ]
+        assert len(round_1_begin_log) == 1
+        est_value_round_1 = round_1_begin_log[0].message.split('=')[1]
+        assert est_value_round_1 == coin_value
+
+    try:
+        gevent.joinall(threads)
+    except gevent.hub.LoopExit:
+        pass
