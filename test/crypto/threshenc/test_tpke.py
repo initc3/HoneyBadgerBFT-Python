@@ -10,20 +10,20 @@ def test_tpke():
     from honeybadgerbft.crypto.threshenc.tpke import dealer
     PK, SKs = dealer(players=100, k=35)
 
-    m = SHA256.new('how').digest()
-    C = PK.encrypt(m)
+    m = SHA256.new(b'how').digest()
+    ciphertext = PK.encrypt(m)
+    U, V, W = ciphertext
+    assert PK.verify_ciphertext(U, V, W)
 
-    assert PK.verify_ciphertext(C)
-
-    shares = [sk.decrypt_share(C) for sk in SKs]
+    shares = [sk.decrypt_share(U, V, W) for sk in SKs]
     for i, share in enumerate(shares):
-        assert PK.verify_share(i, share, C)
+        assert PK.verify_share(i, share, U, V, W)
 
-    SS = range(PK.l)
+    SS = list(range(PK.l))
     for i in range(1):
         shuffle(SS)
         S = set(SS[:PK.k])
-        m_ = PK.combine_shares(C, dict((s, shares[s]) for s in S))
+        m_ = PK.combine_shares(U, V, W, dict((s, shares[s]) for s in S))
         assert m_ == m
 
 
@@ -59,9 +59,8 @@ def test_ciphertext_generation():
     VKs = [g2 ** xx for xx in SKs]
 
     public_key = TPKEPublicKey(players, k, VK, VKs)
-    public_key.encrypt
-    message = SHA256.new('abc123').digest()
-    ciphertext = public_key.encrypt(message)
+    message_digest = SHA256.new(b'abc123').digest()
+    ciphertext = public_key.encrypt(message_digest)
     U, V, W = ciphertext
 
     assert len(V) == 32
@@ -72,12 +71,12 @@ def test_ciphertext_generation():
 
 def test_xor():
     from honeybadgerbft.crypto.threshenc.tpke import xor
-    x = ('l\xa1=R\xcap\xc8\x83\xe0\xf0\xbb\x10\x1eBZ\x89'
-         '\xe8bM\xe5\x1d\xb2\xd29%\x93\xafj\x84\x11\x80\x90')
-    y = ('\xb2\xdf\xfeQ3 J7H\xe8yU6S\x05zU\x85\xd3'
-         '\xc1o\xa8E\xa9\xef\x02\x98\x05\xe46\xbf\x9c')
-    expected_result = ("\xde~\xc3\x03\xf9P\x82\xb4\xa8\x18\xc2E(\x11_"
-                       "\xf3\xbd\xe7\x9e$r\x1a\x97\x90\xca\x917o`'?\x0c")
+    x = (b'l\xa1=R\xcap\xc8\x83\xe0\xf0\xbb\x10\x1eBZ\x89'
+         b'\xe8bM\xe5\x1d\xb2\xd29%\x93\xafj\x84\x11\x80\x90')
+    y = (b'\xb2\xdf\xfeQ3 J7H\xe8yU6S\x05zU\x85\xd3'
+         b'\xc1o\xa8E\xa9\xef\x02\x98\x05\xe46\xbf\x9c')
+    expected_result = (b"\xde~\xc3\x03\xf9P\x82\xb4\xa8\x18\xc2E(\x11_"
+                       b"\xf3\xbd\xe7\x9e$r\x1a\x97\x90\xca\x917o`'?\x0c")
     assert xor(x, y) == expected_result
 
 
@@ -86,6 +85,6 @@ def test_xor():
 def test_deserialize(pairing_group, n, g):
     from honeybadgerbft.crypto.threshenc import tpke
     deserialize_func = getattr(tpke, 'deserialize{}'.format(n))
-    base64_encoded_data = '{}:{}'.format(n, encodestring(g))
+    base64_encoded_data = '{}:{}'.format(n, encodestring(g).decode())
     assert (deserialize_func(g) ==
-            pairing_group.deserialize(base64_encoded_data))
+            pairing_group.deserialize(base64_encoded_data.encode()))

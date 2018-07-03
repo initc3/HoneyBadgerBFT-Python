@@ -86,7 +86,7 @@ class HoneyBadgerBFT():
 
         :param tx: Transaction to append to the buffer.
         """
-        print 'submit_tx', self.pid, tx
+        print('submit_tx', self.pid, tx)
         self.transaction_buffer.append(tx)
 
     def run(self):
@@ -133,7 +133,7 @@ class HoneyBadgerBFT():
             send_r = _make_send(r)
             recv_r = self._per_round_recv[r].get
             new_tx = self._run_round(r, tx_to_send[0], send_r, recv_r)
-            print 'new_tx:', new_tx
+            print('new_tx:', new_tx)
 
             # Remove all of the new transactions from the buffer
             self.transaction_buffer = [_tx for _tx in self.transaction_buffer if _tx not in new_tx]
@@ -174,7 +174,7 @@ class HoneyBadgerBFT():
         rbc_outputs = [Queue(1) for _ in range(N)]
 
         my_rbc_input = Queue(1)
-        print pid, r, 'tx_to_send:', tx_to_send
+        print(pid, r, 'tx_to_send:', tx_to_send)
 
         def _setup(j):
             """Setup the sub protocols RBC, BA and common coin.
@@ -245,7 +245,7 @@ class HoneyBadgerBFT():
 
         _input = Queue(1)
         _input.put(tx_to_send)
-        return honeybadger_block(pid, self.N, self.f, self.ePK, self. eSK,
+        return honeybadger_block(pid, self.N, self.f, self.ePK, self.eSK,
                                  _input.get,
                                  acs_in=my_rbc_input.put_nowait, acs_out=acs.get,
                                  tpke_bcast=tpke_bcast, tpke_recv=tpke_recv.get)

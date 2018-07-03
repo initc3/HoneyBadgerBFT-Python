@@ -1,4 +1,4 @@
-from boldyreva import serialize, deserialize1
+from .boldyreva import serialize, deserialize1
 import gipc
 import random
 
@@ -45,7 +45,7 @@ def combine_and_verify(h, sigs):
     """ """
     # return True  # we are skipping the verification
     assert len(sigs) == myPK.k
-    sigs = dict((s, serialize(v)) for s, v in sigs.iteritems())
+    sigs = dict((s, serialize(v)) for s, v in sigs.items())
     h = serialize(h)
     # Pick a random process
     gipc_process, pipe = _procs[random.choice(range(len(_procs)))]  # random.choice(_procs)

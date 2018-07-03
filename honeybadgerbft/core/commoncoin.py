@@ -39,7 +39,7 @@ def shared_coin(sid, pid, N, f, PK, SK, broadcast, receive):
             assert i in range(N)
             assert r >= 0
             if i in received[r]:
-                print "redundant coin sig received", (sid, pid, i, r)
+                print("redundant coin sig received", (sid, pid, i, r))
                 continue
 
             h = PK.hash_message(str((sid, r)))
@@ -49,7 +49,7 @@ def shared_coin(sid, pid, N, f, PK, SK, broadcast, receive):
             try:
                 PK.verify_share(sig, i, h)
             except AssertionError:
-                print "Signature share failed!", (sid, pid, i, r)
+                print("Signature share failed!", (sid, pid, i, r))
                 continue
 
             received[r][i] = sig
@@ -59,12 +59,12 @@ def shared_coin(sid, pid, N, f, PK, SK, broadcast, receive):
             if len(received[r]) == f + 1:
 
                 # Verify and get the combined signature
-                sigs = dict(list(received[r].iteritems())[:f+1])
+                sigs = dict(list(received[r].items())[:f+1])
                 sig = PK.combine_shares(sigs)
                 assert PK.verify_signature(sig, h)
 
                 # Compute the bit from the least bit of the hash
-                bit = ord(hash(serialize(sig))[0]) % 2
+                bit = hash(serialize(sig))[0] % 2
                 outputQueue[r].put_nowait(bit)
 
     # greenletPacker(Greenlet(_recv), 'shared_coin', (pid, N, f, broadcast, receive)).start()

@@ -4,9 +4,7 @@ pip install --upgrade pip
 
 # will not be needed for flake8
 git clone https://github.com/JHUISI/charm.git
-cd charm && git checkout 2.7-dev
-./configure.sh
-python setup.py install
+cd charm && ./configure.sh && make install
 cd ..
 
 if [ "${BUILD}" == "tests" ]; then

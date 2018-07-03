@@ -1,4 +1,5 @@
 import time
+from importlib import reload
 
 import gevent
 import gipc
@@ -16,7 +17,7 @@ def test_worker(tbls_public_key, tbls_private_keys):
     serialized_h = serialize(h)
     serialized_signature_shares = {
         k: serialize(v) for k, v in signature_shares.items()
-        if k in signature_shares.keys()[:tbls_public_key.k]
+        if k in list(signature_shares.keys())[:tbls_public_key.k]
     }
     w_pipe.put((serialized_h, serialized_signature_shares))
     _worker(tbls_public_key, r_pipe)
@@ -61,7 +62,7 @@ def test_pool():
     initialize(PK)
     assert boldyreva_gipc._procs
 
-    sigs = dict(list(sigs.iteritems())[:PK.k])
+    sigs = dict(list(sigs.items())[:PK.k])
 
     # Combine 100 times
     if 1:
@@ -71,7 +72,7 @@ def test_pool():
         threads = []
         for i in range(3):
             threads.append(gevent.spawn(combine_and_verify, h, sigs))
-        print 'launched', time.time()
+        print('launched', time.time())
         greenlets = gevent.joinall(threads, timeout=3)
         #for p in promises: assert p.get() == True
         for greenlet in greenlets:
@@ -79,20 +80,20 @@ def test_pool():
             process = greenlet.value[1]
             process.terminate()
             process.join()
-        print 'done', time.time()
+        print('done', time.time())
 
     # Combine 100 times
     if 0:
-        print 'launched', time.time()
+        print('launched', time.time())
         for i in range(10):
             # XXX Since _combine_and_verify is not defined, use
             # combine_and_verify instead, although not sure if that was the
             # initial intention.
             #_combine_and_verify(_h, sigs2)
             combine_and_verify(_h, sigs2)
-        print 'done', time.time()
+        print('done', time.time())
 
-    print 'work done'
+    print('work done')
     assert boldyreva_gipc._procs
     reload(boldyreva_gipc)
     assert not boldyreva_gipc._procs

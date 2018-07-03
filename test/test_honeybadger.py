@@ -7,7 +7,7 @@ from gevent.queue import Queue
 from pytest import fixture, mark, raises
 
 import honeybadgerbft.core.honeybadger
-reload(honeybadgerbft.core.honeybadger)
+#reload(honeybadgerbft.core.honeybadger)
 from honeybadgerbft.core.honeybadger import HoneyBadgerBFT
 from honeybadgerbft.crypto.threshsig.boldyreva import dealer
 from honeybadgerbft.crypto.threshenc import tpke
@@ -24,6 +24,9 @@ def recv_queues(request):
     }
     queues[BroadcastTag.TPKE.value] = Queue()
     return BroadcastReceiverQueues(**queues)
+
+
+from pytest import mark
 
 
 def simple_router(N, maxdelay=0.005, seed=None):
@@ -104,6 +107,7 @@ def _test_honeybadger(N=4, f=1, seed=None):
         raise
 
 
+#@mark.skip('python 3 problem with gevent')
 def test_honeybadger():
     _test_honeybadger()
 
@@ -136,7 +140,7 @@ def test_broadcast_receiver_loop_raises(sender, tag, node_id, message, recv_queu
         broadcast_receiver_loop(recv.get, recv_queues)
     expected_err_msg = 'Unknown tag: {}! Must be one of {}.'.format(
         tag, BroadcastTag.__members__.keys())
-    assert exc.value.message == expected_err_msg
+    assert exc.value.args[0] == expected_err_msg
     recv_queues_dict = recv_queues._asdict()
     tpke_queue = recv_queues_dict.pop(BroadcastTag.TPKE.value)
     assert tpke_queue.empty()

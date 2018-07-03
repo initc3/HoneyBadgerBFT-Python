@@ -13,7 +13,7 @@ def generateLargePrime(k):
         r -= 1
         if is_probable_prime(n) is True:
             return n
-    return "Failure after " + repr(r_) + " tries."
+    return "Failure after {} tries.".format(r_)
 
 
 _mrpt_num_trials = 50   # number of bases to test

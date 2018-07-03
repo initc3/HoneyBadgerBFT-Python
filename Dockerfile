@@ -1,4 +1,4 @@
-FROM python:2.7.14
+FROM python:stretch
 
 # Default cluster arguments. Override with "-e"
 #
@@ -15,12 +15,15 @@ RUN wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz
 RUN tar -xvf pbc-0.5.14.tar.gz
 RUN cd pbc-0.5.14 && ./configure && make && make install
 
+ENV LIBRARY_PATH /usr/local/lib
+ENV LD_LIBRARY_PATH /usr/local/lib
+
+RUN git clone https://github.com/JHUISI/charm.git
+RUN cd charm && ./configure.sh && make install
+
 ENV SRC /usr/local/src/HoneyBadgerBFT
 WORKDIR $SRC
 ADD . $SRC/
-
-ENV LIBRARY_PATH /usr/local/lib
-ENV LD_LIBRARY_PATH /usr/local/lib
 
 RUN pip install --upgrade pip
 RUN pip install --process-dependency-links -e .[dev]

@@ -14,8 +14,9 @@ ec2/hosts
 .cache
 .coverage
 .coverage.*
+coverage.xml
+htmlcov/
 .pytest_cache
-htmlcov
 
 # Sphinx documentation
 docs/_build/
