@@ -169,8 +169,8 @@ def test_binaryagreement_dummy_with_redundant_messages(byznode, msg_type):
     for i in range(N):
         inputs[i].put(random.randint(0,1))
 
-    with raises(gevent.hub.LoopExit) as err:
-        outs = [outputs[i].get() for i in range(N)]
+    outs = [outputs[i].get() for i in range(N) if i != byznode]
+    assert all(v in (0, 1) and v == outs[0] for v in outs)
 
     try:
         gevent.joinall(threads)
@@ -203,8 +203,9 @@ def test_binaryagreement_dummy_with_byz_message_type(byznode):
     for i in range(N):
         inputs[i].put(random.randint(0,1))
 
-    with raises(gevent.hub.LoopExit) as err:
-        outs = [outputs[i].get() for i in range(N)]
+    outs = [outputs[i].get() for i in range(N) if i != byznode]
+    assert all(v in (0, 1) and v == outs[0] for v in outs)
+
     try:
         gevent.joinall(threads)
     except gevent.hub.LoopExit:
