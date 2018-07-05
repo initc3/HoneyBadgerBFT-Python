@@ -272,3 +272,71 @@ def test_binaryagreement():
     reason='Place holder for https://github.com/amiller/HoneyBadgerBFT/issues/59')
 def test_issue59_attack():
     raise NotImplementedError("Placeholder test failure for Issue #59")
+
+
+@mark.parametrize('values,s,already_decided,expected_est,'
+                  'expected_already_decided,expected_output', (
+    ({0}, 0, None, 0, 0, 0),
+    ({1}, 1, None, 1, 1, 1),
+))
+def test_set_next_round_estimate_with_decision(values, s, already_decided,
+                    expected_est, expected_already_decided, expected_output):
+    from honeybadgerbft.core.binaryagreement import set_new_estimate
+    decide = Queue()
+    updated_est, updated_already_decided = set_new_estimate(
+        values=values,
+        s=s,
+        already_decided=already_decided,
+        decide=decide.put,
+    )
+    assert updated_est == expected_est
+    assert updated_already_decided == expected_already_decided
+    assert decide.get() == expected_output
+
+
+@mark.parametrize('values,s,already_decided,'
+                  'expected_est,expected_already_decided', (
+    ({0}, 0, 1, 0, 1),
+    ({0}, 1, None, 0, None),
+    ({0}, 1, 0, 0, 0),
+    ({0}, 1, 1, 0, 1),
+    ({1}, 0, None, 1, None),
+    ({1}, 0, 0, 1, 0),
+    ({1}, 0, 1, 1, 1),
+    ({1}, 1, 0, 1, 0),
+    ({0, 1}, 0, None, 0, None),
+    ({0, 1}, 0, 0, 0, 0),
+    ({0, 1}, 0, 1, 0, 1),
+    ({0, 1}, 1, None, 1, None),
+    ({0, 1}, 1, 0, 1, 0),
+    ({0, 1}, 1, 1, 1, 1),
+))
+def test_set_next_round_estimate(values, s, already_decided,
+                                 expected_est, expected_already_decided):
+    from honeybadgerbft.core.binaryagreement import set_new_estimate
+    decide = Queue()
+    updated_est, updated_already_decided = set_new_estimate(
+        values=values,
+        s=s,
+        already_decided=already_decided,
+        decide=decide.put,
+    )
+    assert updated_est == expected_est
+    assert updated_already_decided == expected_already_decided
+    assert decide.empty()
+
+
+@mark.parametrize('values,s,already_decided', (
+    ({0}, 0, 0),
+    ({1}, 1, 1),
+))
+def test_set_next_round_estimate_raises(values, s, already_decided):
+    from honeybadgerbft.core.binaryagreement import set_new_estimate
+    from honeybadgerbft.exceptions import AbandonedNodeError
+    with raises(AbandonedNodeError):
+        updated_est, updated_already_decided = set_new_estimate(
+            values=values,
+            s=s,
+            already_decided=already_decided,
+            decide=None,
+        )
