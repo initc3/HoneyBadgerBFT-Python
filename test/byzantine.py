@@ -126,7 +126,7 @@ def byz_ba_issue_59(sid, pid, N, f, coin, input, decide, broadcast, receive):
     r = 0
     already_decided = None
     while True:  # Unbounded number of rounds
-        logger.debug(f'starting round {r} with est set to {est}', 
+        logger.info(f'starting round {r} with est set to {est}',
                      extra={'nodeid': pid, 'epoch': r})
         not_est = int(not bool(est))
         if not est_sent[r][est]:
@@ -172,7 +172,7 @@ def byz_ba_issue_59(sid, pid, N, f, coin, input, decide, broadcast, receive):
                          extra={'nodeid': pid, 'epoch': r})
             broadcast(('CONF', r, (0, 1)))
 
-        logger.debug(
+        logger.info(
             f'Block until receiving the common coin value',
             extra={'nodeid': pid, 'epoch': r},
         )
@@ -188,7 +188,7 @@ def byz_ba_issue_59(sid, pid, N, f, coin, input, decide, broadcast, receive):
         logger.debug(f"broadcast {('AUX', r, not_s)} to node 2",
                      extra={'nodeid': pid, 'epoch': r})
         broadcast(('AUX', r, not_s), receiver=2)
-        logger.debug(f'exiting round {r}, setting est = s ({s})',
+        logger.info(f'exiting round {r}, setting est = s ({s})',
                      extra={'nodeid': pid, 'epoch': r})
         est = s
         r += 1

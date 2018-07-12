@@ -141,8 +141,8 @@ def binaryagreement(sid, pid, N, f, coin, input, decide, broadcast, receive):
     r = 0
     already_decided = None
     while True:  # Unbounded number of rounds
-        logger.debug(f'Starting with est = {est}',
-                     extra={'nodeid': pid, 'epoch': r})
+        logger.info(f'Starting with est = {est}',
+                    extra={'nodeid': pid, 'epoch': r})
 
         if not est_sent[r][est]:
             est_sent[r][est] = True
@@ -224,8 +224,8 @@ def binaryagreement(sid, pid, N, f, coin, input, decide, broadcast, receive):
         )
         # Block until receiving the common coin value
         s = coin(r)
-        logger.debug(f'Received coin with value = {s}',
-                     extra={'nodeid': pid, 'epoch': r})
+        logger.info(f'Received coin with value = {s}',
+                    extra={'nodeid': pid, 'epoch': r})
 
         try:
             est, already_decided = set_new_estimate(
