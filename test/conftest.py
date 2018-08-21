@@ -2,7 +2,17 @@ import logging
 
 from logutils.colorize import ColorizingStreamHandler
 
-from pytest import fixture
+import pytest
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption('-m') == 'demo':
+        # do not skip demo tests
+        return
+    skip_demo = pytest.mark.skip(reason='need "-m demo" option to run')
+    for item in items:
+        if 'demo' in item.keywords:
+            item.add_marker(skip_demo)
 
 
 class BadgerColoredLogs(ColorizingStreamHandler):

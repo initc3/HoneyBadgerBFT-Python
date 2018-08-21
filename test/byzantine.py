@@ -1,7 +1,5 @@
 import logging
 from collections import defaultdict
-from distutils.util import strtobool
-from os import environ
 
 import gevent
 from gevent.event import AsyncResult, Event
@@ -11,9 +9,9 @@ from honeybadgerbft.exceptions import RedundantMessageError
 
 
 logger = logging.getLogger(__name__)
-CONF_PHASE = strtobool(environ.get('CONF_PHASE', '1'))
 
 a0, a1, bob, x = 0, 1, 2, 3
+
 
 def byz_ba_issue_59(sid, pid, N, f, coin, input, decide, broadcast, receive):
     """Modified binary consensus from [MMR14], so that it exhibits a
@@ -46,7 +44,7 @@ def byz_ba_issue_59(sid, pid, N, f, coin, input, decide, broadcast, receive):
         while True:  # not finished[pid]:
             (sender, msg) = receive()
             logger.debug(f'receive {msg} from node {sender}',
-                          extra={'nodeid': pid, 'epoch': msg[1]})
+                         extra={'nodeid': pid, 'epoch': msg[1]})
             assert sender in range(N)
             if msg[0] == 'EST':
                 # BV_Broadcast message
@@ -96,7 +94,7 @@ def byz_ba_issue_59(sid, pid, N, f, coin, input, decide, broadcast, receive):
 
                 bv_signal.set()
 
-            elif msg[0] == 'CONF' and CONF_PHASE:
+            elif msg[0] == 'CONF':
                 # CONF message
                 _, r, v = msg
                 assert v in ((0,), (1,), (0, 1))
@@ -117,17 +115,16 @@ def byz_ba_issue_59(sid, pid, N, f, coin, input, decide, broadcast, receive):
                 bv_signal.set()
 
     # Run the receive loop in the background
-    _thread_recv = gevent.spawn(_recv)
+    gevent.spawn(_recv)
 
     # Block waiting for the input
     vi = input()
     assert vi in (0, 1)
     est = vi
     r = 0
-    already_decided = None
     while True:  # Unbounded number of rounds
         logger.info(f'starting round {r} with est set to {est}',
-                     extra={'nodeid': pid, 'epoch': r})
+                    extra={'nodeid': pid, 'epoch': r})
         not_est = int(not bool(est))
         if not est_sent[r][est]:
             est_sent[r][est] = True
@@ -166,7 +163,7 @@ def byz_ba_issue_59(sid, pid, N, f, coin, input, decide, broadcast, receive):
         broadcast(('EST', r, int(not bool(est))), receiver=1)
 
         # XXX CONF phase
-        if CONF_PHASE and not conf_sent[r][(0, 1)]:
+        if not conf_sent[r][(0, 1)]:
             conf_sent[r][(0, 1)] = True
             logger.debug(f"broadcast {('CONF', r, (0, 1))}",
                          extra={'nodeid': pid, 'epoch': r})
@@ -189,7 +186,7 @@ def byz_ba_issue_59(sid, pid, N, f, coin, input, decide, broadcast, receive):
                      extra={'nodeid': pid, 'epoch': r})
         broadcast(('AUX', r, not_s), receiver=2)
         logger.info(f'exiting round {r}, setting est = s ({s})',
-                     extra={'nodeid': pid, 'epoch': r})
+                    extra={'nodeid': pid, 'epoch': r})
         est = s
         r += 1
 
@@ -388,8 +385,8 @@ def broadcast_router(N):
 
     def makeRecv(j):
         def _recv():
-            (i,o) = queues[j].get()
-            return (i,o)
+            i, o = queues[j].get()
+            return i, o
         return _recv
 
     return ([makeBroadcast(i) for i in range(N)],

@@ -2,15 +2,58 @@ import gevent
 from gevent.event import Event
 
 from collections import defaultdict
-from distutils.util import strtobool
-from os import environ
 import logging
 
 from honeybadgerbft.exceptions import RedundantMessageError, AbandonedNodeError
 
 
 logger = logging.getLogger(__name__)
-CONF_PHASE = strtobool(environ.get('CONF_PHASE', '1'))
+
+
+def handle_conf_messages(*, sender, message, conf_values, pid, bv_signal):
+    _, r, v = message
+    assert v in ((0,), (1,), (0, 1))
+    if sender in conf_values[r][v]:
+        logger.warn(f'Redundant CONF received {message} by {sender}',
+                    extra={'nodeid': pid, 'epoch': r})
+        # FIXME: Raise for now to simplify things & be consistent
+        # with how other TAGs are handled. Will replace the raise
+        # with a continue statement as part of
+        # https://github.com/initc3/HoneyBadgerBFT-Python/issues/10
+        raise RedundantMessageError(
+            'Redundant CONF received {}'.format(message))
+
+    conf_values[r][v].add(sender)
+    logger.debug(
+        f'add v = {v} to conf_value[{r}] = {conf_values[r]}',
+        extra={'nodeid': pid, 'epoch': r},
+    )
+
+    bv_signal.set()
+
+
+def wait_for_conf_values(*, pid, N, f, epoch, conf_sent, bin_values,
+                         values, conf_values, bv_signal, broadcast):
+    conf_sent[epoch][tuple(values)] = True
+    logger.debug(f"broadcast {('CONF', epoch, tuple(values))}",
+                 extra={'nodeid': pid, 'epoch': epoch})
+    broadcast(('CONF', epoch, tuple(bin_values[epoch])))
+    while True:
+        logger.debug(
+            f'looping ... conf_values[epoch] is: {conf_values[epoch]}',
+            extra={'nodeid': pid, 'epoch': epoch},
+        )
+        if 1 in bin_values[epoch] and len(conf_values[epoch][(1,)]) >= N - f:
+            return set((1,))
+        if 0 in bin_values[epoch] and len(conf_values[epoch][(0,)]) >= N - f:
+            return set((0,))
+        if (sum(len(senders) for conf_value, senders in
+                conf_values[epoch].items() if senders and
+                set(conf_value).issubset(bin_values[epoch])) >= N - f):
+            return set((0, 1))
+
+        bv_signal.clear()
+        bv_signal.wait()
 
 
 def binaryagreement(sid, pid, N, f, coin, input, decide, broadcast, receive):
@@ -105,26 +148,14 @@ def binaryagreement(sid, pid, N, f, coin, input, decide, broadcast, receive):
 
                 bv_signal.set()
 
-            elif msg[0] == 'CONF' and CONF_PHASE:
-                _, r, v = msg
-                assert v in ((0,), (1,), (0, 1))
-                if sender in conf_values[r][v]:
-                    logger.warn(f'Redundant CONF received {msg} by {sender}',
-                                extra={'nodeid': pid, 'epoch': r})
-                    # FIXME: Raise for now to simplify things & be consistent
-                    # with how other TAGs are handled. Will replace the raise
-                    # with a continue statement as part of
-                    # https://github.com/initc3/HoneyBadgerBFT-Python/issues/10
-                    raise RedundantMessageError(
-                        'Redundant CONF received {}'.format(msg))
-
-                conf_values[r][v].add(sender)
-                logger.debug(
-                    f'add v = {v} to conf_value[{r}] = {conf_values[r]}',
-                    extra={'nodeid': pid, 'epoch': r},
+            elif msg[0] == 'CONF':
+                handle_conf_messages(
+                    sender=sender,
+                    message=msg,
+                    conf_values=conf_values,
+                    pid=pid,
+                    bv_signal=bv_signal,
                 )
-
-                bv_signal.set()
 
     # Translate mmr14 broadcast into coin.broadcast
     # _coin_broadcast = lambda (r, sig): broadcast(('COIN', r, sig))
@@ -186,35 +217,23 @@ def binaryagreement(sid, pid, N, f, coin, input, decide, broadcast, receive):
         logger.debug(f'Completed AUX phase with values = {values}',
                      extra={'nodeid': pid, 'epoch': r})
 
-        # XXX CONF phase
+        # CONF phase
         logger.debug(
             f'block until at least N-f ({N-f}) CONF values are received',
             extra={'nodeid': pid, 'epoch': r})
-        if CONF_PHASE and not conf_sent[r][tuple(values)]:
-            conf_sent[r][tuple(values)] = True
-            logger.debug(f"broadcast {('CONF', r, tuple(values))}",
-                         extra={'nodeid': pid, 'epoch': r})
-            broadcast(('CONF', r, tuple(bin_values[r])))
-            while True:
-                logger.debug(
-                    f'looping ... conf_values[r] is: {conf_values[r]}',
-                    extra={'nodeid': pid, 'epoch': r},
-                )
-                if 1 in bin_values[r] and len(conf_values[r][(1,)]) >= N - f:
-                    values = set((1,))
-                    break
-                if 0 in bin_values[r] and len(conf_values[r][(0,)]) >= N - f:
-                    values = set((0,))
-                    break
-                if (sum(len(senders) for conf_value, senders in
-                        conf_values[r].items() if senders and
-                        set(conf_value).issubset(bin_values[r])) >= N - f):
-                    values = set((0, 1))
-                    break
-
-                bv_signal.clear()
-                bv_signal.wait()
-
+        if not conf_sent[r][tuple(values)]:
+            values = wait_for_conf_values(
+                pid=pid,
+                N=N,
+                f=f,
+                epoch=r,
+                conf_sent=conf_sent,
+                bin_values=bin_values,
+                values=values,
+                conf_values=conf_values,
+                bv_signal=bv_signal,
+                broadcast=broadcast,
+            )
         logger.debug(f'Completed CONF phase with values = {values}',
                      extra={'nodeid': pid, 'epoch': r})
 
