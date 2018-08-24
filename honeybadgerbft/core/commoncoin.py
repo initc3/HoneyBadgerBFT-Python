@@ -1,8 +1,12 @@
+import logging
+
 from honeybadgerbft.crypto.threshsig.boldyreva import serialize
 from collections import defaultdict
 from gevent import Greenlet
 from gevent.queue import Queue
 import hashlib
+
+logger = logging.getLogger(__name__)
 
 
 class CommonCoinFailureException(Exception):
@@ -34,8 +38,12 @@ def shared_coin(sid, pid, N, f, PK, SK, broadcast, receive):
 
     def _recv():
         while True:     # main receive loop
+            logger.debug(f'entering loop',
+                         extra={'nodeid': pid, 'epoch': '?'})
             # New shares for some round r, from sender i
             (i, (_, r, sig)) = receive()
+            logger.debug(f'received i, _, r, sig: {i, _, r, sig}',
+                         extra={'nodeid': pid, 'epoch': r})
             assert i in range(N)
             assert r >= 0
             if i in received[r]:
@@ -56,6 +64,10 @@ def shared_coin(sid, pid, N, f, PK, SK, broadcast, receive):
 
             # After reaching the threshold, compute the output and
             # make it available locally
+            logger.debug(
+                f'if len(received[r]) == f + 1: {len(received[r]) == f + 1}',
+                extra={'nodeid': pid, 'epoch': r},
+            )
             if len(received[r]) == f + 1:
 
                 # Verify and get the combined signature
@@ -65,6 +77,8 @@ def shared_coin(sid, pid, N, f, PK, SK, broadcast, receive):
 
                 # Compute the bit from the least bit of the hash
                 bit = hash(serialize(sig))[0] % 2
+                logger.debug(f'put bit {bit} in output queue',
+                             extra={'nodeid': pid, 'epoch': r})
                 outputQueue[r].put_nowait(bit)
 
     # greenletPacker(Greenlet(_recv), 'shared_coin', (pid, N, f, broadcast, receive)).start()
@@ -79,6 +93,8 @@ def shared_coin(sid, pid, N, f, PK, SK, broadcast, receive):
         """
         # I have to do mapping to 1..l
         h = PK.hash_message(str((sid, round)))
+        logger.debug(f"broadcast {('COIN', round, SK.sign(h))}",
+                     extra={'nodeid': pid, 'epoch': round})
         broadcast(('COIN', round, SK.sign(h)))
         return outputQueue[round].get()
 

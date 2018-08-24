@@ -34,6 +34,7 @@ install_requires = [
 tests_require = [
     'coverage',
     'flake8',
+    'logutils',
     'pytest',
     'pytest-cov',
     'pytest-mock',
