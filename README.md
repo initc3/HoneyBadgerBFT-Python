@@ -6,133 +6,61 @@ The Honey Badger of BFT Protocols
 [![Travis branch](https://img.shields.io/travis/amiller/HoneyBadgerBFT/dev.svg)](https://travis-ci.org/amiller/HoneyBadgerBFT)
 [![Codecov branch](https://img.shields.io/codecov/c/github/amiller/honeybadgerbft/dev.svg)](https://codecov.io/github/amiller/honeybadgerbft?branch=dev)
 
-Most fault tolerant protocols (including RAFT, PBFT, Zyzzyva, Q/U) don't guarantee good performance when there are Byzantine faults.
-Even the so-called "robust" BFT protocols (like UpRight, RBFT, Prime, Spinning, and Stellar) have various hard-coded timeout parameters, and can only guarantee performance when the network behaves approximately as expected - hence they are best suited to well-controlled settings like corporate data centers.
+Most fault tolerant protocols (including RAFT, PBFT, Zyzzyva, Q/U) don't
+guarantee good performance when there are Byzantine faults. Even the so-called
+"robust" BFT protocols (like UpRight, RBFT, Prime, Spinning, and Stellar) have
+various hard-coded timeout parameters, and can only guarantee performance when
+the network behaves approximately as expected - hence they are best suited to
+well-controlled settings like corporate data centers.
 
-HoneyBadgerBFT is fault tolerance for the wild wild wide-area-network. HoneyBadger nodes can even stay hidden behind anonymizing relays like Tor, and the purely-asynchronous protocol will make progress at whatever rate the network supports.
+HoneyBadgerBFT is fault tolerance for the wild wild wide-area-network.
+HoneyBadger nodes can even stay hidden behind anonymizing relays like Tor, and
+the purely-asynchronous protocol will make progress at whatever rate the
+network supports.
 
-### License
+
+## Development Activities
+Since its initial implementation, the project has gone through a substantial
+refactoring, and is currently under active development.
+
+At the moment, the following three milestones are being focused on:
+
+* [Bounded Badger](https://github.com/initc3/HoneyBadgerBFT-Python/milestone/3)
+* [Test Network](https://github.com/initc3/HoneyBadgerBFT-Python/milestone/2<Paste>)
+* [Release 1.0](https://github.com/initc3/HoneyBadgerBFT-Python/milestone/1)
+
+A roadmap of the project can be found in [ROADMAP.rst](./ROADMAP.rst).
+
+
+### Contributing
+Contributions are welcomed! To quickly get setup for development:
+
+1. Fork the repository and clone your fork. (See the Github Guide
+   [Forking Projects](https://guides.github.com/activities/forking/) if
+   needed.)
+
+2. Install [`Docker`](https://docs.docker.com/install/). (For Linux, see
+   [Manage Docker as a non-root user](https://docs.docker.com/install/linux/linux-postinstall/#manage-docker-as-a-non-root-user)
+   to run `docker` without `sudo`.)
+
+3. Install [`docker-compose`](https://docs.docker.com/compose/install/).
+
+4. Run the tests (the first time will take longer as the image will be built):
+
+   ```bash
+   $ docker-compose run --rm honeybadger
+   ```
+
+   The tests should pass, and you should also see a small code coverage report
+   output to the terminal.
+
+If the above went all well, you should be setup for developing
+**HoneyBadgerBFT-Python**!
+
+Interested in contributing to HoneyBadgerBFT? Developers wanted. Contact
+ic3directors@systems.cs.cornell.edu for more info.
+
+
+## License
 This is released under the CRAPL academic license. See ./CRAPL-LICENSE.txt
 Other licenses may be issued at the authors' discretion.
-
-### Docker
-
-Build the docker image first.
-
-    docker build -t honeybadgerbft .
-
-By default, the Dockerfile will run the test suite:
-
-    docker run -it honeybadgerbft
-
-### Installation && How to run the code
-
-Working directory is usually the **parent directory** of HoneyBadgerBFT. All the bold vars are experiment parameters:
-
-+ **N** means the total number of parties;
-+ **t** means the tolerance, usually N/4 in our experiments;
-+ **B** means the maximum number of transactions committed in a block (by default N log N). And therefore each party proposes B/N transactions.
-
-#### Install dependencies (maybe it is faster to do a snapshot on EC2 for these dependencies)
-pbc
-
-
-    wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz
-    tar -xvf pbc-0.5.14.tar.gz
-    cd pbc-0.5.14
-    ./configure ; make ; sudo make install
-    export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
-
-charm
-
-
-    sudo apt-get install python3-dev
-    git clone https://github.com/JHUISI/charm.git
-    cd charm
-    git checkout 2.7-dev
-    sudo python setup.py install
-
-
-
-pycrypt
-
-
-    sudo python -m pip install pycrypto
-
-Clone the code:
-
-    git clone https://github.com/amiller/HoneyBadgerBFT.git
-    git checkout dev
-
-Generate the keys
-+ Threshold Signature Keys
-
-    python -m honeybadgerbft.crypto.threshsig.generate_keys N (t+1) > thsigN_t.keys
-
-+ ECDSA Keys
-
-    python -m honeybadgerbft.crypto.ecdsa.generate_keys_ecdsa N > ecdsa.keys
-
-Threshold Encryption Keys
-
-    python -m honeybadgerbft.crypto.threshenc.generate_keys N (N-2t) > thencN_t.keys
-
-Usually, we run ecdsa key generation with large N just once because it can be re-used for different N/t.
-And we can store threshold signature keys and threshold encryption keys into different files for convenience.
-
-##### Launch the code
-    python -m experiments.honest_party_test -k thsigN_t.keys -e ecdsa.keys -b B -n N -t t -c thencN_t.keys
-
-Notice that each party will expect at least NlgN many transactions. And usually there is a key exception after they finish the consensus. Please just ignore it.
-
-### How to deploy the Amazon EC2 experiment
-
-At HoneyBadger/ec2/ folder, run
-
-    python utility.py [ec2_access_key] [ec2_secret_key]
-
-In this interactive ipython environment, run the following:
-
-+ Prepare the all the keys files and put them in your local directory (namely ec2 folder)
-	
-	(See the instructions above)
-
-+ Launch new machines
-        
-        launch_new_instances(region, number_of_machine)
-
-+ Query IPs
-
-        ipAll()
-
-+ Synchronize keys
-    
-        c(getIP(), 'syncKeys')
-
-+ Install Dependencies
-    
-        c(getIP(), 'install_dependencies')
-
-+ Clone and repo
-
-    	c(getIP(), 'git_pull')
-
-+ Launch the experiment
-
-    	c(getIP(), 'runProtocol:N,t,B')
-where N, t, B are experiment parameters (replace them with numbers).
-
-### Roadmap and TODO
-
-- Implement distributed key generation
-
-- Investigate better parameterization and add support for larger key sizes
-
-- Replace plain TCP sockets with reliable/authenticated channels
-
-- Integration with Hyperledger, Open Blockchain, etc.
-
-Interested in contributing to HoneyBadgerBFT? Developers wanted. Contact ic3directors@systems.cs.cornell.edu for more info.
-
-
