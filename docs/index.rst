@@ -11,6 +11,7 @@ Welcome to HoneyBadgerBFT's documentation!
    :caption: Contents:
    
    libref
+   roadmap
 
 
 Indices and tables
