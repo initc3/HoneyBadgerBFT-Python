@@ -6,20 +6,19 @@ The Honey Badger of BFT Protocols
 [![Travis branch](https://img.shields.io/travis/initc3/HoneyBadgerBFT-Python/dev.svg)](https://travis-ci.org/initc3/HoneyBadgerBFT-Python)
 [![Codecov branch](https://img.shields.io/codecov/c/github/initc3/honeybadgerbft-python/dev.svg)](https://codecov.io/github/initc3/honeybadgerbft-python?branch=dev)
 
-Most fault tolerant protocols (including RAFT, PBFT, Zyzzyva, Q/U) don't
-guarantee good performance when there are Byzantine faults. Even the so-called
-"robust" BFT protocols (like UpRight, RBFT, Prime, Spinning, and Stellar) have
-various hard-coded timeout parameters, and can only guarantee performance when
-the network behaves approximately as expected - hence they are best suited to
-well-controlled settings like corporate data centers.
-
-HoneyBadgerBFT is fault tolerance for the wild wild wide-area-network.
+HoneyBadgerBFT is the honey badger of BFT protocols.
+It is leaderless and completely asynchronous, making it a good choice for wide area networks 
+or when adversarial conditions are expected.
 HoneyBadger nodes can even stay hidden behind anonymizing relays like Tor, and
 the purely-asynchronous protocol will make progress at whatever rate the
 network supports.
 
+This repository contains a Python implementation of the HoneyBadgerBFT protocol.
+It is still a prototype, and is not approved for production use. It is intended
+to serve as a useful reference and alternative implementations for other projects.
 
 ## Development Activities
+
 Since its initial implementation, the project has gone through a substantial
 refactoring, and is currently under active development.
 
