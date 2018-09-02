@@ -1,13 +1,13 @@
 # HoneyBadgerBFT
-The Honey Badger of BFT Protocols
+The Honey Badger of BFT Protocols.
 
 <img width=200 src="http://i.imgur.com/wqzdYl4.png"/>
 
 [![Travis branch](https://img.shields.io/travis/initc3/HoneyBadgerBFT-Python/dev.svg)](https://travis-ci.org/initc3/HoneyBadgerBFT-Python)
 [![Codecov branch](https://img.shields.io/codecov/c/github/initc3/honeybadgerbft-python/dev.svg)](https://codecov.io/github/initc3/honeybadgerbft-python?branch=dev)
 
-HoneyBadgerBFT is the honey badger of BFT protocols.
-It is leaderless and completely asynchronous, making it a good choice for wide area networks 
+HoneyBadgerBFT is a leaderless and completely asynchronous BFT consensus protocols.
+This makes it a good fit for a blockchains deployed over wide area networks 
 or when adversarial conditions are expected.
 HoneyBadger nodes can even stay hidden behind anonymizing relays like Tor, and
 the purely-asynchronous protocol will make progress at whatever rate the
