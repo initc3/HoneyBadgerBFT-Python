@@ -57,10 +57,6 @@ Contributions are welcomed! To quickly get setup for development:
 If the above went all well, you should be setup for developing
 **HoneyBadgerBFT-Python**!
 
-Interested in contributing to HoneyBadgerBFT? Developers wanted. Contact
-ic3directors@systems.cs.cornell.edu for more info.
-
-
 ## License
 This is released under the CRAPL academic license. See ./CRAPL-LICENSE.txt
 Other licenses may be issued at the authors' discretion.
