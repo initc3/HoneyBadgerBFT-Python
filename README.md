@@ -3,8 +3,8 @@ The Honey Badger of BFT Protocols
 
 <img width=200 src="http://i.imgur.com/wqzdYl4.png"/>
 
-[![Travis branch](https://img.shields.io/travis/amiller/HoneyBadgerBFT/dev.svg)](https://travis-ci.org/amiller/HoneyBadgerBFT)
-[![Codecov branch](https://img.shields.io/codecov/c/github/amiller/honeybadgerbft/dev.svg)](https://codecov.io/github/amiller/honeybadgerbft?branch=dev)
+[![Travis branch](https://img.shields.io/travis/initc3/HoneyBadgerBFT-Python/dev.svg)](https://travis-ci.org/initc3/HoneyBadgerBFT-Python)
+[![Codecov branch](https://img.shields.io/codecov/c/github/initc3/honeybadgerbft-python/dev.svg)](https://codecov.io/github/initc3/honeybadgerbft-python?branch=dev)
 
 Most fault tolerant protocols (including RAFT, PBFT, Zyzzyva, Q/U) don't
 guarantee good performance when there are Byzantine faults. Even the so-called
