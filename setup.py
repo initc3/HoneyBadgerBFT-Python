@@ -27,7 +27,7 @@ install_requires = [
     'ecdsa',
     'zfec>=1.5.0',
     'gipc',
-    'charm-crypto>=0.50',
+    'charm-crypto @ https://github.com/JHUISI/charm.git@dev',
     'coincurve',
 ]
 
@@ -81,7 +81,4 @@ setup(
         'dev': dev_require + tests_require + docs_require,
         'docs': docs_require,
     },
-    dependency_links=[
-        'git+https://github.com/JHUISI/charm.git@dev#egg=0.50',
-    ],
 )
