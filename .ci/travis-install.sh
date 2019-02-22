@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e -x
+
 pip install --upgrade pip
 
 # will not be needed for flake8
