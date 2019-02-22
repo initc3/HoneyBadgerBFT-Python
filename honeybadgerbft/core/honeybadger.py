@@ -44,7 +44,7 @@ def broadcast_receiver_loop(recv_func, recv_queues):
 
 
 class HoneyBadgerBFT():
-    """HoneyBadgerBFT object used to run the protocol.
+    r"""HoneyBadgerBFT object used to run the protocol.
 
     :param str sid: The base name of the common coin that will be used to
         derive a nonce to uniquely identify the coin.
