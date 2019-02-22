@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e -x
+
 if [ "${BUILD}" != "flake8" ]; then
     apt-get update -qq
     apt-get -y install flex bison libgmp-dev libmpc-dev python-dev libssl-dev
