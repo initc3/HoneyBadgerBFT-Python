@@ -26,7 +26,7 @@ WORKDIR $SRC
 ADD . $SRC/
 
 RUN pip install --upgrade pip
-RUN pip install --process-dependency-links -e .[dev]
+RUN pip install -e .[dev]
 
 # Run tests by default
 CMD sh test.sh

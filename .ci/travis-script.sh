@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e -x
+
 if [ "${BUILD}" == "tests" ]; then
     pytest -v --cov=honeybadgerbft
 elif [ "${BUILD}" == "flake8" ]; then
