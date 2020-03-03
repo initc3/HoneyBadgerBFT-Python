@@ -7,7 +7,16 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/usr/local/src/HoneyBadgerBFT
-    command: pytest -v --cov=honeybadgerbft
+    command: pytest -s test/test_vaba.py
+
+  honeybadger-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/local/src/HoneyBadgerBFT
+    command: bash
+
   builddocs:
     build:
       context: .
