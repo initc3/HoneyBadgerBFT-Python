@@ -14,7 +14,9 @@ from honeybadgerbft.core.honeybadger import HoneyBadgerBFT
 from honeybadgerbft.crypto.threshsig.boldyreva import dealer
 from honeybadgerbft.crypto.threshenc import tpke
 from honeybadgerbft.core.honeybadger import BroadcastTag
-from utils import log
+from logging import getLogger
+from our_srcs.utils import setup_logging
+from our_srcs.consts import *
 
 @fixture
 def recv_queues(request):
@@ -60,6 +62,9 @@ def simple_router(N, maxdelay=0.005, seed=None):
 
 ### Test asynchronous common subset
 def test_honeybadger(N=4, f=1, seed=None):
+    setup_logging()
+    logger = getLogger(LOGGER_NAME)
+
     sid = 'sidA'
     # Generate threshold sig keys
     sPK, sSKs = dealer(N, f+1, seed=seed)
@@ -80,12 +85,12 @@ def test_honeybadger(N=4, f=1, seed=None):
         threads[i] = gevent.spawn(badgers[i].run)
 
     time_at_start = datetime.now().timestamp()
-    log(f"Time at start: {time_at_start}")
+    logger.info(f"Time at start: {time_at_start}")
 
     for i in range(N):
         #if i == 1: continue
         badgers[i].submit_tx('<[HBBFT Input {}]>'.format(i)*100000)
-    log("Done submitting big input")
+    logger.debug("Done submitting big input")
     for i in range(N):
         badgers[i].submit_tx('<[HBBFT Input %d]>' % (i+10))
 
@@ -104,7 +109,7 @@ def test_honeybadger(N=4, f=1, seed=None):
 
         time_at_end = datetime.now().timestamp()
         time_diff = time_at_end - time_at_start
-        log(f"Time passed: {time_diff}")
+        logger.info(f"Time passed: {time_diff}")
 
     except KeyboardInterrupt:
         gevent.killall(threads)
