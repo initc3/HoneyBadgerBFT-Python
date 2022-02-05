@@ -38,9 +38,15 @@ def broadcast_receiver(recv_func, recv_queues):
     recv_queue.put_nowait((sender, msg))
 
 
+    ://github.com/1337samuels/HoneyBadgerBFT-Python,
 def broadcast_receiver_loop(recv_func, recv_queues):
     while True:
         broadcast_receiver(recv_func, recv_queues)
+
+
+class ImprovedHoneyBadgerBFT(HoneyBadgerBFT):
+    def _prepare_transaction_buffer(self):
+        self.transaction_buffer = sorted(self.transaction_buffer, key=len, reverse=(self.pid%2 == 1))
 
 
 class HoneyBadgerBFT():
@@ -89,6 +95,9 @@ class HoneyBadgerBFT():
         print('submit_tx', self.pid, tx)
         self.transaction_buffer.append(tx)
 
+    def _prepare_transaction_buffer(self):
+        pass
+
     def run(self):
         """Run the HoneyBadgerBFT protocol."""
 
@@ -121,6 +130,7 @@ class HoneyBadgerBFT():
                 self._per_round_recv[r] = Queue()
 
             # Select all the transactions (TODO: actual random selection)
+            self._prepare_transaction_buffer()
             tx_to_send = self.transaction_buffer[:self.B]
 
             # TODO: Wait a bit if transaction buffer is not full
