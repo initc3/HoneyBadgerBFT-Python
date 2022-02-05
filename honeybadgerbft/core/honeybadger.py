@@ -38,15 +38,11 @@ def broadcast_receiver(recv_func, recv_queues):
     recv_queue.put_nowait((sender, msg))
 
 
-    ://github.com/1337samuels/HoneyBadgerBFT-Python,
 def broadcast_receiver_loop(recv_func, recv_queues):
     while True:
         broadcast_receiver(recv_func, recv_queues)
 
 
-class ImprovedHoneyBadgerBFT(HoneyBadgerBFT):
-    def _prepare_transaction_buffer(self):
-        self.transaction_buffer = sorted(self.transaction_buffer, key=len, reverse=(self.pid%2 == 1))
 
 
 class HoneyBadgerBFT():
@@ -259,3 +255,8 @@ class HoneyBadgerBFT():
                                  _input.get,
                                  acs_in=my_rbc_input.put_nowait, acs_out=acs.get,
                                  tpke_bcast=tpke_bcast, tpke_recv=tpke_recv.get)
+
+
+class ImprovedHoneyBadgerBFT(HoneyBadgerBFT):
+    def _prepare_transaction_buffer(self):
+        self.transaction_buffer = sorted(self.transaction_buffer, key=len, reverse=(self.pid%2 == 1))

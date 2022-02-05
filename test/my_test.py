@@ -10,7 +10,7 @@ from pytest import fixture, mark, raises
 
 import honeybadgerbft.core.honeybadger
 #reload(honeybadgerbft.core.honeybadger)
-from honeybadgerbft.core.honeybadger import HoneyBadgerBFT
+from honeybadgerbft.core.honeybadger import HoneyBadgerBFT, ImprovedHoneyBadgerBFT
 from honeybadgerbft.crypto.threshsig.boldyreva import dealer
 from honeybadgerbft.crypto.threshenc import tpke
 from honeybadgerbft.core.honeybadger import BroadcastTag
@@ -60,11 +60,19 @@ def simple_router(N, maxdelay=0.005, seed=None):
             [makeRecv(j) for j in range(N)])
 
 
-### Test asynchronous common subset
-def test_honeybadger(N=4, f=1, seed=None):
+def test_HB(N=4, f=1, seed=None):
     setup_logging()
     logger = getLogger(LOGGER_NAME)
+    logger.info("Testing original HB:")
+    _test_honeybadger(HoneyBadgerBFT, N, f, seed)
+    logger.info("Testing improved HB:")
+    _test_honeybadger(ImprovedHoneyBadgerBFT, N, f, seed)
 
+
+### Test asynchronous common subset
+def _test_honeybadger(HB, N=8, f=1, seed=None):
+
+    logger=getLogger(LOGGER_NAME)
     sid = 'sidA'
     # Generate threshold sig keys
     sPK, sSKs = dealer(N, f+1, seed=seed)
@@ -79,7 +87,7 @@ def test_honeybadger(N=4, f=1, seed=None):
     badgers = [None] * N
     threads = [None] * N
     for i in range(N):
-        badgers[i] = HoneyBadgerBFT(sid, i, 1, N, f,
+        badgers[i] = HB(sid, i, 1, N, f,
                                     sPK, sSKs[i], ePK, eSKs[i],
                                     sends[i], recvs[i])
         threads[i] = gevent.spawn(badgers[i].run)
