@@ -85,22 +85,18 @@ def test_honeybadger(N=4, f=1, seed=None):
         threads[i] = gevent.spawn(badgers[i].run)
 
     time_at_start = datetime.now().timestamp()
-    logger.info(f"Time at start: {time_at_start}")
 
     for i in range(N):
         #if i == 1: continue
         badgers[i].submit_tx('<[HBBFT Input {}]>'.format(i)*100000)
-    logger.debug("Done submitting big input")
     for i in range(N):
         badgers[i].submit_tx('<[HBBFT Input %d]>' % (i+10))
-
+    
     for i in range(N):
         badgers[i].submit_tx('<[HBBFT Input %d]>' % (i+20))
 
-    #gevent.killall(threads[N-f:])
-    #gevent.sleep(3)
-    #for i in range(N-f, N):
-    #    inputs[i].put(0)
+    logger.debug("Done submitting all inputs")
+
     try:
         outs = [threads[i].get() for i in range(N)]
 
