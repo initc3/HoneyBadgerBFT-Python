@@ -110,6 +110,3 @@ def test_honeybadger(N=4, f=1, seed=None):
         gevent.killall(threads)
         raise
 
-log("Starting!")
-test_honeybadger()
-log("Finished test!")
