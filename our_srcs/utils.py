@@ -1,6 +1,6 @@
 import os
 import logging
-from consts import *
+from our_srcs.consts import *
 import datetime
 
 def setup_logging():

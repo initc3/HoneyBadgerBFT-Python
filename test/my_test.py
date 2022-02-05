@@ -15,8 +15,8 @@ from honeybadgerbft.crypto.threshsig.boldyreva import dealer
 from honeybadgerbft.crypto.threshenc import tpke
 from honeybadgerbft.core.honeybadger import BroadcastTag
 from logging import getLogger
-from utils import setup_logging
-from consts import *
+from our_srcs.utils import setup_logging
+from our_srcs.consts import *
 
 @fixture
 def recv_queues(request):
