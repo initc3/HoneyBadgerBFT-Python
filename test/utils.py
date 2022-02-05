@@ -1,10 +1,29 @@
 import os
-LOG_DIR = "./logs"
-LOG_PATH = LOG_DIR + "/test_log.txt"
-def log(msg):
-    print(msg)
-    msg += "\n"
+import logging
+from consts import *
+import datetime
+
+def setup_logging():
     if not os.path.isdir(LOG_DIR):
         os.mkdir(LOG_DIR)
-    with open(LOG_PATH, 'a') as f:
-        f.write(msg)
+
+
+    logger = logging.getLogger(LOGGER_NAME)
+    logger.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter('(%(asctime)s) %(levelname)s: %(message)s', datefmt='%H:%M:%S')
+
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+
+    cur_time = datetime.datetime.now()
+    fi = logging.FileHandler(LOG_PATH.format(cur_time.year, cur_time.month, cur_time.day, cur_time.hour,
+                                             cur_time.minute, cur_time.second))
+    fi.setLevel(logging.DEBUG)
+    fi.setFormatter(formatter)
+
+    logger.addHandler(ch)
+    logger.addHandler(fi)
+
+
+
