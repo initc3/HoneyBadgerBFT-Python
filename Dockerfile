@@ -11,7 +11,7 @@ ENV B 16
 
 RUN apt-get update && apt-get -y install bison flex libgmp-dev libmpc-dev
 
-RUN wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz
+RUN wget --no-check-certificate https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz
 RUN tar -xvf pbc-0.5.14.tar.gz
 RUN cd pbc-0.5.14 && ./configure && make && make install
 
