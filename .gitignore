@@ -1,1 +1,5 @@
 logs/
+*__pycache__*
+.coverage
+docs/_build/
+*.pyc
