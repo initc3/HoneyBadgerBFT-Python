@@ -257,6 +257,13 @@ class HoneyBadgerBFT():
                                  tpke_bcast=tpke_bcast, tpke_recv=tpke_recv.get)
 
 
+def permute_list(lst, index):
+    return lst[index:] + lst[:index]
+
 class ImprovedHoneyBadgerBFT(HoneyBadgerBFT):
     def _prepare_transaction_buffer(self):
         self.transaction_buffer = sorted(self.transaction_buffer, key=len, reverse=(self.pid%2 == 1))
+
+class PermutedHoneyBadgerBFT(HoneyBadgerBFT):
+    def _prepare_transaction_buffer(self):
+        self.transaction_buffer = sorted(self.transaction_buffer, key=len)

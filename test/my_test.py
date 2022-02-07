@@ -10,7 +10,7 @@ from pytest import fixture, mark, raises
 
 import honeybadgerbft.core.honeybadger
 #reload(honeybadgerbft.core.honeybadger)
-from honeybadgerbft.core.honeybadger import HoneyBadgerBFT, ImprovedHoneyBadgerBFT
+from honeybadgerbft.core.honeybadger import HoneyBadgerBFT, ImprovedHoneyBadgerBFT, PermutedHoneyBadgerBFT
 from honeybadgerbft.crypto.threshsig.boldyreva import dealer
 from honeybadgerbft.crypto.threshenc import tpke
 from honeybadgerbft.core.honeybadger import BroadcastTag
@@ -67,6 +67,8 @@ def test_HB(N=4, f=1, seed=None):
     _test_honeybadger(HoneyBadgerBFT, N, f, seed)
     logger.info("Testing improved HB:")
     _test_honeybadger(ImprovedHoneyBadgerBFT, N, f, seed)
+    logger.info("Testing permuted HB:")
+    _test_honeybadger(PermutedHoneyBadgerBFT, N, f, seed)
 
 
 ### Test asynchronous common subset
