@@ -27,18 +27,24 @@ def test_main():
 
 def _test_num_of_nodes():
     logger.info("Testing Number of Nodes")
+    results = []
     for num_of_nodes in NUM_OF_NODE_OPTIONS:
-        _test_honeybadgers(num_of_nodes, DEFAULT_NUM_OF_IDENTICAL_INPUTS_OPTIONS, DEFAULT_INPUT_SIZE)
+        results.append((num_of_nodes,_test_honeybadgers(num_of_nodes, DEFAULT_NUM_OF_IDENTICAL_INPUTS_OPTIONS, DEFAULT_INPUT_SIZE))
+    logger.critical(f"Results for different number of nodes: {results}")
 
 def _test_num_of_identical_inputs():
     logger.info("Testing different identical inputs")
+    results = []
     for num_of_identical_inputs in NUM_OF_IDENTICAL_INPUTS_OPTIONS:
-        _test_honeybadgers(DEFAULT_NUM_OF_NODES, num_of_identical_inputs, DEFAULT_INPUT_SIZE)
+        results.append((num_of_identical_inputs,_test_honeybadgers(DEFAULT_NUM_OF_NODES, num_of_identical_inputs, DEFAULT_INPUT_SIZE)))
+    logger.critical(f"Results for different number of identical inputs: {results}")
 
 def _test_input_sizes():
     logger.info("Testing different input sizes")
+    results = []
     for inputs_size in INPUT_SIZES:
-        _test_honeybadgers(DEFAULT_NUM_OF_NODES, DEFAULT_NUM_OF_IDENTICAL_INPUTS_OPTIONS, inputs_size)
+        results.append((inputs_size,_test_honeybadgers(DEFAULT_NUM_OF_NODES, DEFAULT_NUM_OF_IDENTICAL_INPUTS_OPTIONS, inputs_size))
+    logger.critical(f"Results for different number of input sizes: {results}")
 
 def _test_honeybadgers(num_of_nodes, identical_input, input_size):
     logger.info(f"Test Honeybadgers with N={num_of_nodes}, id={identical_input}, size={input_size}")
@@ -75,6 +81,7 @@ def _test_honeybadger_full(HB, N, identical_inputs, input_sizes):
         time_at_end = datetime.datetime.now().timestamp()
         time_diff = time_at_end - time_at_start
         logger.info(f"Time passed: {time_diff}")
+        return str(time_diff[:4])
 
     except KeyboardInterrupt:
         gevent.killall(threads)
