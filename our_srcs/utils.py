@@ -69,7 +69,7 @@ def simple_router(N, maxdelay=0.005, seed=None):
     def makeSend(i):
         def _send(j, o):
             delay = rnd.random() * maxdelay
-            delay *= math.log(len(o)) * 7.5
+            delay *= math.log(len(o))
             gevent.spawn_later(delay, queues[j].put_nowait, (i,o))
         return _send
 

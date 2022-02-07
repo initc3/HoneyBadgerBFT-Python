@@ -12,8 +12,10 @@ from logging import getLogger
 from our_srcs.consts import *
 from our_srcs.utils import *
 
-from honeybadgerbft.core.honeybadger import HoneyBadgerBFT, ImprovedHoneyBadgerBFT, PermutedHoneyBadgerBFT
-HONEYBADGERS = [("Regular Honeybadger", HoneyBadgerBFT), ("Parity Honeybadger", ImprovedHoneyBadgerBFT), ("Permuted Honeybadger", PermutedHoneyBadgerBFT)]
+from honeybadgerbft.core.honeybadger import HoneyBadgerBFT, ImprovedHoneyBadgerBFT, PermutedHoneyBadgerBFT, RandomizedHoneyBadgerBFT
+#HONEYBADGERS = [("Ordered Honeybadger", HoneyBadgerBFT), ("Randomized Honeybadger", RandomizedHoneyBadgerBFT), ("Parity Honeybadger", ImprovedHoneyBadgerBFT), ("Permuted Honeybadger", PermutedHoneyBadgerBFT)]
+#HONEYBADGERS = [("Permuted Honeybadger", PermutedHoneyBadgerBFT)]
+HONEYBADGERS = [("Ordered Honeybadger", HoneyBadgerBFT), ("Permuted Honeybadger", PermutedHoneyBadgerBFT), ("Ordered Honeybadger", HoneyBadgerBFT), ("Randomized Honeybadger", RandomizedHoneyBadgerBFT), ("Parity Honeybadger", ImprovedHoneyBadgerBFT)]
 setup_logging()
 logger = getLogger(LOGGER_NAME)
 
