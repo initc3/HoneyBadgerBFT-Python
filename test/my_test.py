@@ -30,6 +30,11 @@ def _test_num_of_identical_inputs():
     logger.info("Testing different identical inputs")
     for num_of_identical_inputs in NUM_OF_IDENTICAL_INPUTS_OPTIONS:
 
+def _test_input_sizes():
+    logger.info("Testing different input sizes")
+    for inputs_size in INPUT_SIZES:
+        _test_honeybadgers(DEFAULT_NUM_OF_NODES, DEFAULT_NUM_OF_IDENTICAL_INPUTS_OPTIONS, inputs_size)
+
 def _test_honeybadgers(num_of_nodes, identical_input, input_size):
     logger.info(f"Test Honeybadgers with N={num_of_nodes}, id={identical_input}, size={input_size}")
     for hb_tuple in HONEYBADGERS:
