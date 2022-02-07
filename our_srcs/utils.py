@@ -49,10 +49,11 @@ def setup_honeybadgers(honeybadger_class, N):
     badgers = [None] * N
     threads = [None] * N
     for i in range(N):
-        badgers[i] = HB(sid, i, 1, N, 1,
+        badgers[i] = honeybadger_class(sid, i, 1, N, 1,
                                     sPK, sSKs[i], ePK, eSKs[i],
                                     sends[i], recvs[i])
         threads[i] = gevent.spawn(badgers[i].run)
+    return badgers, threads
 
 def simple_router(N, maxdelay=0.005, seed=None):
     """Builds a set of connected channels, with random delay

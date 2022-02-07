@@ -16,8 +16,8 @@ setup_logging()
 logger = getLogger(LOGGER_NAME)
 
 def test_main():
-    _test_num_of_nodes()
-    #_test_num_of_identical_inputs()
+    #_test_num_of_nodes()
+    _test_num_of_identical_inputs()
     #_test_input_sizes()
 
 
@@ -25,6 +25,11 @@ def _test_num_of_nodes():
     logger.info("Testing Number of Nodes")
     for num_of_nodes in NUM_OF_NODE_OPTIONS:
         _test_honeybadgers(num_of_nodes, DEFAULT_NUM_OF_IDENTICAL_INPUTS_OPTIONS, DEFAULT_INPUT_SIZE)
+
+def _test_num_of_identical_inputs():
+    logger.info("Testing different identical inputs")
+    for num_of_identical_inputs in NUM_OF_IDENTICAL_INPUTS_OPTIONS:
+        _test_honeybadgers(DEFAULT_NUM_OF_NODES, num_of_identical_inputs, DEFAULT_INPUT_SIZE)
 
 def _test_honeybadgers(num_of_nodes, identical_input, input_size):
     logger.info(f"Test Honeybadgers with N={num_of_nodes}, id={identical_input}, size={input_size}")
@@ -35,24 +40,8 @@ def _test_honeybadgers(num_of_nodes, identical_input, input_size):
 ### Test asynchronous common subset
 def _test_honeybadger_full(HB, N, identical_inputs, input_sizes):
     assert N >= identical_inputs, "There can't be more identical_inputs than number of nodes"
-    sid = 'sidA'
-    # Generate threshold sig keys
-    sPK, sSKs = dealer(N, 2, seed=None)
-    # Generate threshold enc keys
-    ePK, eSKs = tpke.dealer(N, 2)
-
-    rnd = random.Random(None)
-    #print 'SEED:', seed
-    router_seed = rnd.random()
-    sends, recvs = simple_router(N, seed=router_seed)
-
-    badgers = [None] * N
-    threads = [None] * N
-    for i in range(N):
-        badgers[i] = HB(sid, i, 1, N, 1,
-                                    sPK, sSKs[i], ePK, eSKs[i],
-                                    sends[i], recvs[i])
-        threads[i] = gevent.spawn(badgers[i].run)
+    
+    badgers, threads = setup_honeybadgers(HB, N)
 
     time_at_start = datetime.datetime.now().timestamp()
     
