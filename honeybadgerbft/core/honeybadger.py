@@ -10,6 +10,8 @@ from honeybadgerbft.core.reliablebroadcast import reliablebroadcast
 from honeybadgerbft.core.commonsubset import commonsubset
 from honeybadgerbft.core.honeybadger_block import honeybadger_block
 from honeybadgerbft.exceptions import UnknownTagError
+from our_srcs.consts import *
+from logging import getLogger; logger=getLogger(LOGGER_NAME)
 
 
 class BroadcastTag(Enum):
@@ -122,6 +124,8 @@ class HoneyBadgerBFT():
         while True:
             # For each round...
             r = self.round
+            logger.info(f"AAAAA round number: {self.round}")
+            logger.info(f"BBBBB transaction buffer with len: {len(self.transaction_buffer)}") 
             if r not in self._per_round_recv:
                 self._per_round_recv[r] = Queue()
 
@@ -142,10 +146,11 @@ class HoneyBadgerBFT():
             #print('new_tx:', new_tx)
 
             # Remove all of the new transactions from the buffer
-            self.transaction_buffer = [_tx for _tx in self.transaction_buffer if _tx not in new_tx]
+            self.transaction_buffer = [_tx for _tx in self.transaction_buffer if _tx not in new_tx and _tx not in tx_to_send]
 
             self.round += 1     # Increment the round
-            if self.round >= 3:
+            if not self.transaction_buffer:
+                logger.info(f"CCCCC finished with rounds: {self.round}")
                 break   # Only run one round for now
 
     def _run_round(self, r, tx_to_send, send, recv):
