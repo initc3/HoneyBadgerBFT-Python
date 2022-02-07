@@ -120,7 +120,6 @@ class HoneyBadgerBFT():
                 # round and will stop participating!
 
         self._recv_thread = gevent.spawn(_recv)
-
         while True:
             # For each round...
             r = self.round
@@ -132,6 +131,8 @@ class HoneyBadgerBFT():
             # Select all the transactions (TODO: actual random selection)
             self._prepare_transaction_buffer()
             tx_to_send = self.transaction_buffer[:self.B]
+            logger.debug(f"EEEEE transaction_buffer: {[t[:40] for t in self.transaction_buffer]}")
+            logger.debug(f"Chosen tx_to_send for {self.pid} is {tx_to_send[0][:40]}")
 
             # TODO: Wait a bit if transaction buffer is not full
 
@@ -143,7 +144,8 @@ class HoneyBadgerBFT():
             send_r = _make_send(r)
             recv_r = self._per_round_recv[r].get
             new_tx = self._run_round(r, tx_to_send[0], send_r, recv_r)
-            print('new_tx:', new_tx)
+            for nino in new_tx:
+                logger.debug(f'Node id {self.pid} got from his friends: {nino[:40]}')
 
             # Remove all of the new transactions from the buffer
             self.transaction_buffer = [_tx for _tx in self.transaction_buffer if _tx not in new_tx and _tx not in tx_to_send]
@@ -267,8 +269,11 @@ def permute_list(lst, index):
 
 class ImprovedHoneyBadgerBFT(HoneyBadgerBFT):
     def _prepare_transaction_buffer(self):
-        self.transaction_buffer = sorted(self.transaction_buffer, key=len, reverse=(self.pid%2 == 1))
+        self.transaction_buffer = sorted(self.transaction_buffer, key=str.lower, reverse=(self.pid%2 == 1))
+        logger.debug(f"DDDD transaction_buffer: {[t[:40] for t in self.transaction_buffer]}")
 
 class PermutedHoneyBadgerBFT(HoneyBadgerBFT):
     def _prepare_transaction_buffer(self):
-        self.transaction_buffer = sorted(self.transaction_buffer, key=len)
+        self.transaction_buffer = sorted(self.transaction_buffer, key=str.lower)
+        self.transaction_buffer = permute_list(self.transaction_buffer, self.pid)
+        logger.debug(f"DDDD transaction_buffer: {[t[:40] for t in self.transaction_buffer]}")

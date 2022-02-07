@@ -9,9 +9,11 @@ from gevent.queue import Queue
 from pytest import fixture, mark, raises
 
 from logging import getLogger
-from our_srcs.utils import *
 from our_srcs.consts import *
+from our_srcs.utils import *
 
+from honeybadgerbft.core.honeybadger import HoneyBadgerBFT, ImprovedHoneyBadgerBFT, PermutedHoneyBadgerBFT
+HONEYBADGERS = [("Regular Honeybadger", HoneyBadgerBFT), ("Parity Honeybadger", ImprovedHoneyBadgerBFT), ("Permuted Honeybadger", PermutedHoneyBadgerBFT)]
 setup_logging()
 logger = getLogger(LOGGER_NAME)
 
@@ -29,6 +31,7 @@ def _test_num_of_nodes():
 def _test_num_of_identical_inputs():
     logger.info("Testing different identical inputs")
     for num_of_identical_inputs in NUM_OF_IDENTICAL_INPUTS_OPTIONS:
+        _test_honeybadgers(DEFAULT_NUM_OF_NODES, num_of_identical_inputs, DEFAULT_INPUT_SIZE)
 
 def _test_input_sizes():
     logger.info("Testing different input sizes")
