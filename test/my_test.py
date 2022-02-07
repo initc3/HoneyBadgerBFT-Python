@@ -60,26 +60,37 @@ def simple_router(N, maxdelay=0.005, seed=None):
             [makeRecv(j) for j in range(N)])
 
 
-def test_HB(N=4, f=1, seed=None):
+def test_main():
     setup_logging()
     logger = getLogger(LOGGER_NAME)
-    logger.info("Testing original HB:")
-    _test_honeybadger(HoneyBadgerBFT, N, f, seed)
-    logger.info("Testing improved HB:")
-    _test_honeybadger(ImprovedHoneyBadgerBFT, N, f, seed)
+    _test_num_of_nodes()
+    #_test_num_of_identical_inputs()
+    #_test_input_sizes()
 
+
+def _test_num_of_nodes():
+    logger = getLogger(LOGGER_NAME)
+    logger.info("Testing Number of Nodes")
+    for num_of_nodes in NUM_OF_NODE_OPTIONS:
+        _test_honeybadgers(num_of_nodes, DEFAULT_NUM_OF_IDENTICAL_INPUTS_OPTIONS, DEFAULT_INPUT_SIZE)
+
+def _test_honeybadgers(num_of_nodes, identical_input, input_size):
+    logger = getLogger(LOGGER_NAME)
+    logger.info(f"Test Honeybadgers with N={num_of_nodes}, id={identical_input}, size={input_size}")
+    for hb_tuple in HONEYBADGERS:
+        logger.info("Testing Honeybadger: {}".format(hb_tuple[0]))
+        _test_honeybadger_full(hb_tuple[1], num_of_nodes, identical_input, input_size)
 
 ### Test asynchronous common subset
-def _test_honeybadger(HB, N=8, f=1, seed=None):
-
+def _test_honeybadger_full(HB, N, identical_inputs, input_sizes):
     logger=getLogger(LOGGER_NAME)
     sid = 'sidA'
     # Generate threshold sig keys
-    sPK, sSKs = dealer(N, f+1, seed=seed)
+    sPK, sSKs = dealer(N, 2, seed=None)
     # Generate threshold enc keys
-    ePK, eSKs = tpke.dealer(N, f+1)
+    ePK, eSKs = tpke.dealer(N, 2)
 
-    rnd = random.Random(seed)
+    rnd = random.Random(None)
     #print 'SEED:', seed
     router_seed = rnd.random()
     sends, recvs = simple_router(N, seed=router_seed)
@@ -87,7 +98,7 @@ def _test_honeybadger(HB, N=8, f=1, seed=None):
     badgers = [None] * N
     threads = [None] * N
     for i in range(N):
-        badgers[i] = HB(sid, i, 1, N, f,
+        badgers[i] = HB(sid, i, 1, N, 1,
                                     sPK, sSKs[i], ePK, eSKs[i],
                                     sends[i], recvs[i])
         threads[i] = gevent.spawn(badgers[i].run)
@@ -96,7 +107,7 @@ def _test_honeybadger(HB, N=8, f=1, seed=None):
 
     for i in range(N):
         #if i == 1: continue
-        badgers[i].submit_tx('<[HBBFT Input {}]>'.format(i)*100000)
+        badgers[i].submit_tx('<[HBBFT Input {}]>'.format(i))
     for i in range(N):
         badgers[i].submit_tx('<[HBBFT Input %d]>' % (i+10))
     
