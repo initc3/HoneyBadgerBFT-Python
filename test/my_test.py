@@ -25,7 +25,10 @@ logger = getLogger(LOGGER_NAME)
 def test_honeybadger_full(HB, N, identical_inputs, input_sizes):
     if N < identical_inputs:
         logger.debug("There can't be more identical_inputs than number of nodes, skipping test")
-        return    
+        return   
+    if (N != SET_NUM_OF_NODES and identical_inputs != SET_NUM_OF_IDENTICAL_INPUTS) or (N != SET_NUM_OF_NODES and input_sizes != SET_INPUT_SIZE) or (identical_inputs != SET_NUM_OF_IDENTICAL_INPUTS and input_sizes != SET_INPUT_SIZE):
+        logger.debug("Not an interesting test, skipping")
+        return
     
     logger.info(f"Running Honeybadger test with parameters:\n\tHoneyBadger: {HB[0]}\n\tNumber of Nodes: {N}\n\tNumber of Identical Inputs: {identical_inputs}\n\tInput Sizes: {input_sizes}")
 
