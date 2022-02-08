@@ -10,6 +10,8 @@ from honeybadgerbft.core.reliablebroadcast import reliablebroadcast
 from honeybadgerbft.core.commonsubset import commonsubset
 from honeybadgerbft.core.honeybadger_block import honeybadger_block
 from honeybadgerbft.exceptions import UnknownTagError
+from our_srcs.consts import *
+from logging import getLogger; logger=getLogger(LOGGER_NAME)
 
 
 class BroadcastTag(Enum):
@@ -118,16 +120,19 @@ class HoneyBadgerBFT():
                 # round and will stop participating!
 
         self._recv_thread = gevent.spawn(_recv)
-
         while True:
             # For each round...
             r = self.round
+            logger.info(f"AAAAA round number: {self.round}")
+            logger.info(f"BBBBB transaction buffer with len: {len(self.transaction_buffer)}") 
             if r not in self._per_round_recv:
                 self._per_round_recv[r] = Queue()
 
             # Select all the transactions (TODO: actual random selection)
             self._prepare_transaction_buffer()
             tx_to_send = self.transaction_buffer[:self.B]
+            logger.debug(f"EEEEE transaction_buffer for id {self.pid}: {[t[:40] for t in self.transaction_buffer]}")
+            logger.debug(f"Chosen tx_to_send for {self.pid} is {tx_to_send[0][:40]}")
 
             # TODO: Wait a bit if transaction buffer is not full
 
@@ -139,13 +144,16 @@ class HoneyBadgerBFT():
             send_r = _make_send(r)
             recv_r = self._per_round_recv[r].get
             new_tx = self._run_round(r, tx_to_send[0], send_r, recv_r)
-            print('new_tx:', new_tx)
+            for nino in new_tx:
+                logger.debug(f'Node id {self.pid} got from his friends: {nino[:40]}')
 
             # Remove all of the new transactions from the buffer
-            self.transaction_buffer = [_tx for _tx in self.transaction_buffer if _tx not in new_tx]
+            self.transaction_buffer = [_tx for _tx in self.transaction_buffer if _tx not in [t.decode('utf-8') for t in new_tx] and _tx not in tx_to_send]
+            logger.debug(f"New transaction buffer after getting messages for id {self.pid}: {[t[:40] for t in self.transaction_buffer]}")
 
             self.round += 1     # Increment the round
-            if self.round >= 3:
+            if not self.transaction_buffer:
+                logger.info(f"CCCCC finished with rounds: {self.round}")
                 break   # Only run one round for now
 
     def _run_round(self, r, tx_to_send, send, recv):
@@ -257,6 +265,18 @@ class HoneyBadgerBFT():
                                  tpke_bcast=tpke_bcast, tpke_recv=tpke_recv.get)
 
 
+def permute_list(lst, index):
+    return lst[index:] + lst[:index]
+
 class ImprovedHoneyBadgerBFT(HoneyBadgerBFT):
     def _prepare_transaction_buffer(self):
-        self.transaction_buffer = sorted(self.transaction_buffer, key=len, reverse=(self.pid%2 == 1))
+        self.transaction_buffer = sorted(self.transaction_buffer, key=str.lower, reverse=(self.pid%2 == 1))
+
+class PermutedHoneyBadgerBFT(HoneyBadgerBFT):
+    def _prepare_transaction_buffer(self):
+        self.transaction_buffer = sorted(self.transaction_buffer, key=str.lower)
+        self.transaction_buffer = permute_list(self.transaction_buffer, self.pid)
+
+class RandomizedHoneyBadgerBFT(HoneyBadgerBFT):
+    def _prepare_transaction(self):
+        self.transaction_buffer = random.sample(self.transaction_buffer, len(self.transaction_buffer))
