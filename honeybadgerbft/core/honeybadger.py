@@ -123,8 +123,8 @@ class HoneyBadgerBFT():
         while True:
             # For each round...
             r = self.round
-            logger.info(f"AAAAA round number: {self.round}")
-            logger.info(f"BBBBB transaction buffer with len: {len(self.transaction_buffer)}") 
+            logger.debug(f"AAAAA round number: {self.round}")
+            logger.debug(f"BBBBB transaction buffer with len: {len(self.transaction_buffer)}") 
             if r not in self._per_round_recv:
                 self._per_round_recv[r] = Queue()
 
@@ -153,7 +153,7 @@ class HoneyBadgerBFT():
 
             self.round += 1     # Increment the round
             if not self.transaction_buffer:
-                logger.info(f"CCCCC finished with rounds: {self.round}")
+                logger.debug(f"CCCCC finished with rounds: {self.round}")
                 break   # Only run one round for now
 
     def _run_round(self, r, tx_to_send, send, recv):

@@ -59,3 +59,10 @@ If the above went all well, you should be setup for developing
 ## License
 This is released under the CRAPL academic license. See ./CRAPL-LICENSE.txt
 Other licenses may be issued at the authors' discretion.
+
+
+### Our added documentation
+# To watch log results being written live
+   ```bash
+   grep -v DEBUG logs/`ls -t logs | head -n 1`   
+   ```
