@@ -4,7 +4,8 @@ from our_srcs.consts import *
 import datetime
 import random
 import math
-
+from gevent import monkey
+monkey.patch_all()
 from honeybadgerbft.crypto.threshsig.boldyreva import dealer
 from honeybadgerbft.crypto.threshenc import tpke
 import gevent
@@ -34,7 +35,7 @@ def setup_logging():
     logger.addHandler(ch)
     logger.addHandler(fi)
 
-def setup_honeybadgers(honeybadger_class, N):
+def setup_honeybadgers(honeybadger_class, N, amount=-1):
     sid = 'sidA'
     # Generate threshold sig keys
     sPK, sSKs = dealer(N, 2, seed=None)
@@ -51,7 +52,7 @@ def setup_honeybadgers(honeybadger_class, N):
     for i in range(N):
         badgers[i] = honeybadger_class(sid, i, 1, N, 1,
                                     sPK, sSKs[i], ePK, eSKs[i],
-                                    sends[i], recvs[i])
+                                    sends[i], recvs[i], amount=amount)
         threads[i] = gevent.spawn(badgers[i].run)
     return badgers, threads
 

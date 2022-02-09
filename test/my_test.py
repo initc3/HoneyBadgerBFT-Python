@@ -2,7 +2,8 @@ import random
 from collections import defaultdict
 import math
 import datetime
-
+from gevent import monkey
+monkey.patch_all()
 import gevent
 from gevent.event import Event
 from gevent.queue import Queue
@@ -32,19 +33,25 @@ def test_honeybadger_full(HB, N, identical_inputs, input_sizes):
     
     logger.info(f"Running Honeybadger test with parameters:\n\tHoneyBadger: {HB[0]}\n\tNumber of Nodes: {N}\n\tNumber of Identical Inputs: {identical_inputs}\n\tInput Sizes: {input_sizes}")
 
-    badgers, threads = setup_honeybadgers(HB[1], N)
-
-    time_at_start = datetime.datetime.now().timestamp()
-    
+    txs_to_submit = [[] for i in range(N)]
     for iter_index in range(NUM_OF_INPUTS_IN_ITERATION):
         identical_hbs = random.sample(range(N), identical_inputs)
         logger.debug(f"At epoch {iter_index} chose identical_inputs {identical_hbs}")
         for node_index in range(N):
             if node_index in identical_hbs:
-                badgers[node_index].submit_tx(f'<HBBFT Input Epoch {iter_index} Identical Input> ' + 'a'*input_sizes)
+                txs_to_submit[node_index].append(f'<HBBFT Input Epoch {iter_index} Identical Input> ' + 'a'*input_sizes)
             else:
-                badgers[node_index].submit_tx(f'<HBBFT Input Epoch {iter_index} Different Input {node_index} ' + 'a'*input_sizes)
+                txs_to_submit[node_index].append(f'<HBBFT Input Epoch {iter_index} Different Input {node_index} ' + 'a'*input_sizes)
+    amount_of_distinct_messages = len(set([msg for l in txs_to_submit for msg in l]))
+    logger.debug(f"Number of distrinct message is {amount_of_distinct_messages}")
 
+    badgers, threads = setup_honeybadgers(HB[1], N, amount_of_distinct_messages)
+
+    time_at_start = datetime.datetime.now().timestamp()
+
+    for node_index in range(N):
+        for tx in txs_to_submit[node_index]:
+            badgers[node_index].submit_tx(tx)
 
     logger.debug("Done submitting all inputs")
 

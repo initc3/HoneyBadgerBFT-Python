@@ -1,8 +1,10 @@
 from collections import namedtuple
 from enum import Enum
-
+from gevent import monkey
+monkey.patch_all()
 import gevent
 from gevent.queue import Queue
+
 
 from honeybadgerbft.core.commoncoin import shared_coin
 from honeybadgerbft.core.binaryagreement import binaryagreement
@@ -68,7 +70,7 @@ class HoneyBadgerBFT():
     :param recv:
     """
 
-    def __init__(self, sid, pid, B, N, f, sPK, sSK, ePK, eSK, send, recv):
+    def __init__(self, sid, pid, B, N, f, sPK, sSK, ePK, eSK, send, recv, amount=-1):
         self.sid = sid
         self.pid = pid
         self.B = B
@@ -80,10 +82,12 @@ class HoneyBadgerBFT():
         self.eSK = eSK
         self._send = send
         self._recv = recv
+        self.amount = amount
 
         self.round = 0  # Current block number
         self.transaction_buffer = []
         self._per_round_recv = {}  # Buffer of incoming messages
+        self.messages_seen = set()
 
     def submit_tx(self, tx):
         """Appends the given transaction to the transaction buffer.
@@ -123,16 +127,19 @@ class HoneyBadgerBFT():
         while True:
             # For each round...
             r = self.round
-            logger.debug(f"AAAAA round number: {self.round}")
-            logger.debug(f"BBBBB transaction buffer with len: {len(self.transaction_buffer)}") 
+            logger.debug(str(self.pid) + f"AAAAA round number: {self.round}")
+            logger.debug(str(self.pid) + f"BBBBB transaction buffer with len: {len(self.transaction_buffer)}") 
             if r not in self._per_round_recv:
                 self._per_round_recv[r] = Queue()
 
             # Select all the transactions (TODO: actual random selection)
             self._prepare_transaction_buffer()
-            tx_to_send = self.transaction_buffer[:self.B]
-            logger.debug(f"EEEEE transaction_buffer for id {self.pid}: {[t[:40] for t in self.transaction_buffer]}")
-            logger.debug(f"Chosen tx_to_send for {self.pid} is {tx_to_send[0][:40]}")
+            if len(self.transaction_buffer):
+                tx_to_send = self.transaction_buffer[:self.B]
+                logger.debug(str(self.pid) + f"Chosen tx_to_send for {self.pid} is {tx_to_send[0][:40]}")
+            else:
+                tx_to_send = ['']
+            logger.debug(str(self.pid) + f"EEEEE transaction_buffer for id {self.pid}: {[t[:40] for t in self.transaction_buffer]}")
 
             # TODO: Wait a bit if transaction buffer is not full
 
@@ -145,15 +152,19 @@ class HoneyBadgerBFT():
             recv_r = self._per_round_recv[r].get
             new_tx = self._run_round(r, tx_to_send[0], send_r, recv_r)
             for nino in new_tx:
-                logger.debug(f'Node id {self.pid} got from his friends: {nino[:40]}')
+                if nino != b'':
+                    logger.debug(str(self.pid) + f'Node id {self.pid} got from his friends: {nino[:40]}')
+                    self.messages_seen.add(nino)
 
             # Remove all of the new transactions from the buffer
             self.transaction_buffer = [_tx for _tx in self.transaction_buffer if _tx not in [t.decode('utf-8') for t in new_tx] and _tx not in tx_to_send]
-            logger.debug(f"New transaction buffer after getting messages for id {self.pid}: {[t[:40] for t in self.transaction_buffer]}")
+            logger.debug(str(self.pid) + f"New transaction buffer after getting messages for id {self.pid}: {[t[:40] for t in self.transaction_buffer]}")
 
             self.round += 1     # Increment the round
-            if not self.transaction_buffer:
-                logger.debug(f"CCCCC finished with rounds: {self.round}")
+            # if not self.transaction_buffer:
+            logger.debug(f"{self.pid} Up to now: {len(set(self.messages_seen))} out of {self.amount}")
+            if len(set(self.messages_seen)) == self.amount:
+                logger.debug(str(self.pid) + f"CCCCC finished with rounds: {self.round}")
                 break   # Only run one round for now
 
     def _run_round(self, r, tx_to_send, send, recv):
@@ -236,19 +247,16 @@ class HoneyBadgerBFT():
         # N instances of ABA, RBC
         for j in range(N):
             _setup(j)
-
         # One instance of TPKE
         def tpke_bcast(o):
             """Threshold encryption broadcast."""
             broadcast(('TPKE', 0, o))
 
         tpke_recv = Queue()
-
         # One instance of ACS
         acs = gevent.spawn(commonsubset, pid, N, f, rbc_outputs,
                            [_.put_nowait for _ in aba_inputs],
                            [_.get for _ in aba_outputs])
-
         recv_queues = BroadcastReceiverQueues(
             ACS_COIN=coin_recvs,
             ACS_ABA=aba_recvs,
@@ -256,7 +264,6 @@ class HoneyBadgerBFT():
             TPKE=tpke_recv,
         )
         gevent.spawn(broadcast_receiver_loop, recv, recv_queues)
-
         _input = Queue(1)
         _input.put(tx_to_send)
         return honeybadger_block(pid, self.N, self.f, self.ePK, self.eSK,
