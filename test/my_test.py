@@ -13,16 +13,20 @@ from logging import getLogger
 from our_srcs.consts import *
 from our_srcs.utils import *
 
-from honeybadgerbft.core.honeybadger import HoneyBadgerBFT, ImprovedHoneyBadgerBFT, PermutedHoneyBadgerBFT, RandomizedHoneyBadgerBFT
-HONEYBADGERS = [("Ordered Honeybadger", HoneyBadgerBFT), ("Permuted Honeybadger", PermutedHoneyBadgerBFT),  ("Randomized Honeybadger", RandomizedHoneyBadgerBFT), ("Parity Honeybadger", ImprovedHoneyBadgerBFT)]
+from honeybadgerbft.core.honeybadger import HoneyBadgerBFT, ImprovedHoneyBadgerBFT, PermutedHoneyBadgerBFT, RandomizedHoneyBadgerBFT, DistanceHoneyBadgerBFT
+HONEYBADGERS = [("Ordered Honeybadger", HoneyBadgerBFT), ("Permuted Honeybadger", PermutedHoneyBadgerBFT),  ("Randomized Honeybadger", RandomizedHoneyBadgerBFT), ("Parity Honeybadger", ImprovedHoneyBadgerBFT), ("Distance Honeybadger", DistanceHoneyBadgerBFT)]
 setup_logging()
 logger = getLogger(LOGGER_NAME)
 
 ### Test asynchronous common subset
-@mark.parametrize("HB", HONEYBADGERS)
-@mark.parametrize("N", NUM_OF_NODE_OPTIONS)
-@mark.parametrize("identical_inputs", NUM_OF_IDENTICAL_INPUTS_OPTIONS)
-@mark.parametrize("input_sizes", INPUT_SIZES)
+# @mark.parametrize("HB", HONEYBADGERS)
+# @mark.parametrize("N", NUM_OF_NODE_OPTIONS)
+# @mark.parametrize("identical_inputs", NUM_OF_IDENTICAL_INPUTS_OPTIONS)
+# @mark.parametrize("input_sizes", INPUT_SIZES)
+@mark.parametrize("HB", HONEYBADGERS[1:2])
+@mark.parametrize("N", [10])
+@mark.parametrize("identical_inputs", [6])
+@mark.parametrize("input_sizes", [2])
 def test_honeybadger_full(HB, N, identical_inputs, input_sizes):
     if N < identical_inputs:
         logger.debug("There can't be more identical_inputs than number of nodes, skipping test")
@@ -57,14 +61,13 @@ def test_honeybadger_full(HB, N, identical_inputs, input_sizes):
 
     try:
         outs = [threads[i].get() for i in range(N)]
-
         # Consistency check
         assert len(set(outs)) == 1
 
         time_at_end = datetime.datetime.now().timestamp()
         time_diff = time_at_end - time_at_start
         logger.info(f"Time passed: {time_diff}")
-        result = str(time_diff)[:4]
+        result = str(round(time_diff, 2))
         logger.critical(f"Result: {result} (params {HB[0]}, {N}, {identical_inputs}, {input_sizes})")
         return str(time_diff)[:4]
 

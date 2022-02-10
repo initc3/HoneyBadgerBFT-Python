@@ -4,6 +4,7 @@ from gevent import monkey
 monkey.patch_all()
 import gevent
 from gevent.queue import Queue
+import hashlib
 
 
 from honeybadgerbft.core.commoncoin import shared_coin
@@ -275,15 +276,30 @@ class HoneyBadgerBFT():
 def permute_list(lst, index):
     return lst[index:] + lst[:index]
 
+def sha256(s):
+    return hashlib.sha256(s.encode()).digest().hex()
+
+def distance(frac):
+    def dist(s):
+        return abs(int((2**256) * frac)  - int.from_bytes(hashlib.sha256(s.encode()).digest(), 'big'))
+    return dist
+
 class ImprovedHoneyBadgerBFT(HoneyBadgerBFT):
     def _prepare_transaction_buffer(self):
-        self.transaction_buffer = sorted(self.transaction_buffer, key=str.lower, reverse=(self.pid%2 == 1))
+        self.transaction_buffer = sorted(self.transaction_buffer, key=sha256, reverse=(self.pid%2 == 1))
 
 class PermutedHoneyBadgerBFT(HoneyBadgerBFT):
     def _prepare_transaction_buffer(self):
-        self.transaction_buffer = sorted(self.transaction_buffer, key=str.lower)
-        self.transaction_buffer = permute_list(self.transaction_buffer, self.pid)
+        self.transaction_buffer = sorted(self.transaction_buffer, key=sha256)
+        self.transaction_buffer = permute_list(self.transaction_buffer, int((self.pid / self.N) * self.N))
+        logger.debug("permutating")
 
 class RandomizedHoneyBadgerBFT(HoneyBadgerBFT):
     def _prepare_transaction(self):
         self.transaction_buffer = random.sample(self.transaction_buffer, len(self.transaction_buffer))
+
+class DistanceHoneyBadgerBFT(HoneyBadgerBFT):
+    def _prepare_transaction(self):
+        self.transaction_buffer = sorted(self.transaction_buffer, key=distance(self.pid / self.N))
+        logger.debug("permutating with distance")
+

@@ -12,6 +12,8 @@ import gevent
 from gevent.event import Event
 from gevent.queue import Queue
 
+from our_srcs.consts import *
+from logging import getLogger; logger=getLogger(LOGGER_NAME)
 
 def setup_logging():
     if not os.path.isdir(LOG_DIR):
@@ -70,7 +72,8 @@ def simple_router(N, maxdelay=0.005, seed=None):
     def makeSend(i):
         def _send(j, o):
             delay = rnd.random() * maxdelay
-            delay *= math.log(len(o))
+            messageLen = sum([len(s) if type(s) is str else 0 for s in o[1][2]])
+            delay *= math.log(messageLen) if messageLen != 0 else 1
             gevent.spawn_later(delay, queues[j].put_nowait, (i,o))
         return _send
 
