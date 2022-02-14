@@ -17,7 +17,7 @@ def get_result_line(line):
 def update_dict_by_param(full_dict, result_dict, param):
     if result_dict['HB'] not in full_dict:
         full_dict[result_dict['HB']] = {}
-    full_dict[result_dict['HB']][result_dict[param]] = result_dict['total_time']
+    full_dict[result_dict['HB']][result_dict[param]] = {'total_time': result_dict['total_time'], 'bytes_sent': result_dict['bytes_sent']}
 
 def get_lines(log_file):
     all_lines = []
@@ -58,7 +58,6 @@ def extract_data(log_file):
             for q in PARAMS:
                 if p != q and rd[q] != SET_PARAMS[q]:
                     should_add_point = False
-                    print(f"{p}:{rd[p]}, {q}:{rd[q]}")
                     break
 
             if should_add_point:
@@ -67,24 +66,26 @@ def extract_data(log_file):
     return dicts_by_param
 
 
-def analyze_data(pds):
+def analyze_data(pds, objective):
     ax = {}
-    fig, (ax['N'], ax['id'], ax['sz']) = plt.subplots(1, 3, sharey=True)
+    fig, (ax['N'], ax['id'], ax['sz']) = plt.subplots(1, 3, sharey=False)
     for p in pds.keys():
         for hb in pds[p]:
-            print(f"Plotting by honeybadger {hb}")
-            ax[p].plot(pds[p][hb].keys(), pds[p][hb].values())
+            x_vals, y_vals = (list(t) for t in zip(*sorted(zip(pds[p][hb].keys(), [results[objective] for results in pds[p][hb].values()]))))
+            ax[p].plot(x_vals, y_vals)
         ax[p].set_title(p)
         ax[p].legend(pds[p].keys())
     ax['sz'].set_xscale('log')
+    if objective == 'bytes_sent':
+        ax['sz'].set_yscale('log')
     plt.show()
 
 
 def main():
     assert len(sys.argv) == 2, "Give log file parameter please"
     pbs = extract_data(sys.argv[1])
-    analyze_data(pbs)
-
+    analyze_data(pbs, 'total_time')
+    analyze_data(pbs, 'bytes_sent')
 
 main()
 

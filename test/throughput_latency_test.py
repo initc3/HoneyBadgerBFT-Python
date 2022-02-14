@@ -18,8 +18,6 @@ HONEYBADGERS = [("Ordered Honeybadger", HoneyBadgerBFT), ("Permuted Honeybadger"
 setup_logging()
 logger = getLogger(LOGGER_NAME)
 
-### Test asynchronous common subset
-#@mark.parametrize("HB", HONEYBADGERS)
 @mark.parametrize("HB", HONEYBADGERS)
 @mark.parametrize("N", NUM_OF_NODE_OPTIONS)
 @mark.parametrize("identical_inputs", NUM_OF_IDENTICAL_INPUTS_OPTIONS)
