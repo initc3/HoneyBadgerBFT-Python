@@ -3,9 +3,9 @@ from matplotlib import pyplot as plt
 import pandas
 import re
 
-RESULT_REGEX = "\(\d\d:\d\d:\d\d\) CRITICAL: Result: (?P<result_value>\d\d.\d) \(params (?P<HB>[a-zA-Z]* [a-zA-Z]*), (?P<N>\d*), (?P<id>\d*), (?P<sz>\d*)\)"
+RESULT_REGEX = "\(\d\d:\d\d:\d\d\) CRITICAL: Result: (?P<result_value>[\d]+.?[\d]*) \(params (?P<HB>[a-zA-Z]* [a-zA-Z]*), (?P<N>\d*), (?P<id>\d*), (?P<sz>\d*)\)"
 
-SET_PARAMS = {"N": 6, "id": 2, "sz": 2}#1024*1024}
+SET_PARAMS = {"N": 10, "id": 6, "sz": 2**20}
 PARAMS = ['N', 'id', 'sz']
 
 

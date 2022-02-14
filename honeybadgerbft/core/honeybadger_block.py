@@ -1,5 +1,7 @@
 from ..crypto.threshenc import tpke
 import os
+from our_srcs.consts import *
+from logging import getLogger; logger=getLogger(LOGGER_NAME)
 
 
 def serialize_UVW(U, V, W):
@@ -70,7 +72,6 @@ def honeybadger_block(pid, N, f, PK, SK, propose_in, acs_in, acs_out, tpke_bcast
         share = SK.decrypt_share(*tkey)
         # share is of the form: U_i, an element of group1
         my_shares.append(share)
-
     tpke_bcast(my_shares)
 
     # Receive everyone's shares
@@ -82,7 +83,6 @@ def honeybadger_block(pid, N, f, PK, SK, propose_in, acs_in, acs_out, tpke_bcast
             print('Received a duplicate decryption share from', j)
             continue
         shares_received[j] = shares
-
     assert len(shares_received) >= f+1
     # TODO: Accountability
     # If decryption fails at this point, we will have evidence of misbehavior,
@@ -100,5 +100,4 @@ def honeybadger_block(pid, N, f, PK, SK, propose_in, acs_in, acs_out, tpke_bcast
         plain = tpke.decrypt(key, ciph)
         decryptions.append(plain)
     # print 'Done!', decryptions
-
     return tuple(decryptions)
