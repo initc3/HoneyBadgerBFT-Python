@@ -2,7 +2,8 @@ import random
 from collections import defaultdict
 import math
 import datetime
-
+from gevent import monkey
+monkey.patch_all()
 import gevent
 from gevent.event import Event
 from gevent.queue import Queue
@@ -12,76 +13,59 @@ from logging import getLogger
 from our_srcs.consts import *
 from our_srcs.utils import *
 
-from honeybadgerbft.core.honeybadger import HoneyBadgerBFT, ImprovedHoneyBadgerBFT, PermutedHoneyBadgerBFT, RandomizedHoneyBadgerBFT
-#HONEYBADGERS = [("Ordered Honeybadger", HoneyBadgerBFT), ("Randomized Honeybadger", RandomizedHoneyBadgerBFT), ("Parity Honeybadger", ImprovedHoneyBadgerBFT), ("Permuted Honeybadger", PermutedHoneyBadgerBFT)]
-#HONEYBADGERS = [("Permuted Honeybadger", PermutedHoneyBadgerBFT)]
-HONEYBADGERS = [("Ordered Honeybadger", HoneyBadgerBFT), ("Permuted Honeybadger", PermutedHoneyBadgerBFT), ("Ordered Honeybadger", HoneyBadgerBFT), ("Randomized Honeybadger", RandomizedHoneyBadgerBFT), ("Parity Honeybadger", ImprovedHoneyBadgerBFT)]
+from honeybadgerbft.core.honeybadger import HoneyBadgerBFT, ImprovedHoneyBadgerBFT, PermutedHoneyBadgerBFT, RandomizedHoneyBadgerBFT, DistanceHoneyBadgerBFT
+HONEYBADGERS = [("Ordered Honeybadger", HoneyBadgerBFT), ("Permuted Honeybadger", PermutedHoneyBadgerBFT),  ("Randomized Honeybadger", RandomizedHoneyBadgerBFT), ("Parity Honeybadger", ImprovedHoneyBadgerBFT), ("Distance Honeybadger", DistanceHoneyBadgerBFT)]
 setup_logging()
 logger = getLogger(LOGGER_NAME)
 
-def test_main():
-    #_test_num_of_nodes()
-    _test_num_of_identical_inputs()
-    #_test_input_sizes()
-
-
-def _test_num_of_nodes():
-    logger.info("Testing Number of Nodes")
-    results = []
-    for num_of_nodes in NUM_OF_NODE_OPTIONS:
-        results.append((num_of_nodes,_test_honeybadgers(num_of_nodes, DEFAULT_NUM_OF_IDENTICAL_INPUTS_OPTIONS, DEFAULT_INPUT_SIZE))
-    logger.critical(f"Results for different number of nodes: {results}")
-
-def _test_num_of_identical_inputs():
-    logger.info("Testing different identical inputs")
-    results = []
-    for num_of_identical_inputs in NUM_OF_IDENTICAL_INPUTS_OPTIONS:
-        results.append((num_of_identical_inputs,_test_honeybadgers(DEFAULT_NUM_OF_NODES, num_of_identical_inputs, DEFAULT_INPUT_SIZE)))
-    logger.critical(f"Results for different number of identical inputs: {results}")
-
-def _test_input_sizes():
-    logger.info("Testing different input sizes")
-    results = []
-    for inputs_size in INPUT_SIZES:
-        results.append((inputs_size,_test_honeybadgers(DEFAULT_NUM_OF_NODES, DEFAULT_NUM_OF_IDENTICAL_INPUTS_OPTIONS, inputs_size))
-    logger.critical(f"Results for different number of input sizes: {results}")
-
-def _test_honeybadgers(num_of_nodes, identical_input, input_size):
-    logger.info(f"Test Honeybadgers with N={num_of_nodes}, id={identical_input}, size={input_size}")
-    for hb_tuple in HONEYBADGERS:
-        logger.info("Testing Honeybadger: {}".format(hb_tuple[0]))
-        _test_honeybadger_full(hb_tuple[1], num_of_nodes, identical_input, input_size)
-
 ### Test asynchronous common subset
-def _test_honeybadger_full(HB, N, identical_inputs, input_sizes):
-    assert N >= identical_inputs, "There can't be more identical_inputs than number of nodes"
+@mark.parametrize("HB", HONEYBADGERS)
+@mark.parametrize("N", NUM_OF_NODE_OPTIONS)
+@mark.parametrize("identical_inputs", NUM_OF_IDENTICAL_INPUTS_OPTIONS)
+@mark.parametrize("input_sizes", INPUT_SIZES)
+def test_honeybadger_full(HB, N, identical_inputs, input_sizes):
+    if N < identical_inputs:
+        logger.debug("There can't be more identical_inputs than number of nodes, skipping test")
+        return   
+    if (N != SET_NUM_OF_NODES and identical_inputs != SET_NUM_OF_IDENTICAL_INPUTS) or (N != SET_NUM_OF_NODES and input_sizes != SET_INPUT_SIZE) or (identical_inputs != SET_NUM_OF_IDENTICAL_INPUTS and input_sizes != SET_INPUT_SIZE):
+        logger.debug("Not an interesting test, skipping")
+        return
     
-    badgers, threads = setup_honeybadgers(HB, N)
+    logger.info(f"Running Honeybadger test with parameters:\n\tHoneyBadger: {HB[0]}\n\tNumber of Nodes: {N}\n\tNumber of Identical Inputs: {identical_inputs}\n\tInput Sizes: {input_sizes}")
 
-    time_at_start = datetime.datetime.now().timestamp()
-    
+    txs_to_submit = [[] for i in range(N)]
     for iter_index in range(NUM_OF_INPUTS_IN_ITERATION):
         identical_hbs = random.sample(range(N), identical_inputs)
         logger.debug(f"At epoch {iter_index} chose identical_inputs {identical_hbs}")
         for node_index in range(N):
             if node_index in identical_hbs:
-                badgers[node_index].submit_tx(f'<HBBFT Input Epoch {iter_index} Identical Input> ' + 'a'*input_sizes)
+                txs_to_submit[node_index].append(f'<HBBFT Input Epoch {iter_index} Identical Input> ' + 'a'*input_sizes)
             else:
-                badgers[node_index].submit_tx(f'<HBBFT Input Epoch {iter_index} Different Input {node_index} ' + 'a'*input_sizes)
+                txs_to_submit[node_index].append(f'<HBBFT Input Epoch {iter_index} Different Input {node_index} ' + 'a'*input_sizes)
+    amount_of_distinct_messages = len(set([msg for l in txs_to_submit for msg in l]))
+    logger.debug(f"Number of distrinct message is {amount_of_distinct_messages}")
 
+    badgers, threads = setup_honeybadgers(HB[1], N, amount_of_distinct_messages)
+
+    time_at_start = datetime.datetime.now().timestamp()
+
+    for node_index in range(N):
+        for tx in txs_to_submit[node_index]:
+            badgers[node_index].submit_tx(tx)
 
     logger.debug("Done submitting all inputs")
 
     try:
         outs = [threads[i].get() for i in range(N)]
-
         # Consistency check
         assert len(set(outs)) == 1
 
         time_at_end = datetime.datetime.now().timestamp()
         time_diff = time_at_end - time_at_start
         logger.info(f"Time passed: {time_diff}")
-        return str(time_diff[:4])
+        result = str(round(time_diff, 2))
+        logger.critical(f"Result: {result} (params {HB[0]}, {N}, {identical_inputs}, {input_sizes})")
+        return str(time_diff)[:4]
 
     except KeyboardInterrupt:
         gevent.killall(threads)

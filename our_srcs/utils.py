@@ -4,13 +4,16 @@ from our_srcs.consts import *
 import datetime
 import random
 import math
-
+from gevent import monkey
+monkey.patch_all()
 from honeybadgerbft.crypto.threshsig.boldyreva import dealer
 from honeybadgerbft.crypto.threshenc import tpke
 import gevent
 from gevent.event import Event
 from gevent.queue import Queue
 
+from our_srcs.consts import *
+from logging import getLogger; logger=getLogger(LOGGER_NAME)
 
 def setup_logging():
     if not os.path.isdir(LOG_DIR):
@@ -34,7 +37,7 @@ def setup_logging():
     logger.addHandler(ch)
     logger.addHandler(fi)
 
-def setup_honeybadgers(honeybadger_class, N):
+def setup_honeybadgers(honeybadger_class, N, amount=-1):
     sid = 'sidA'
     # Generate threshold sig keys
     sPK, sSKs = dealer(N, 2, seed=None)
@@ -51,7 +54,7 @@ def setup_honeybadgers(honeybadger_class, N):
     for i in range(N):
         badgers[i] = honeybadger_class(sid, i, 1, N, 1,
                                     sPK, sSKs[i], ePK, eSKs[i],
-                                    sends[i], recvs[i])
+                                    sends[i], recvs[i], amount=amount)
         threads[i] = gevent.spawn(badgers[i].run)
     return badgers, threads
 
@@ -69,7 +72,8 @@ def simple_router(N, maxdelay=0.005, seed=None):
     def makeSend(i):
         def _send(j, o):
             delay = rnd.random() * maxdelay
-            delay *= math.log(len(o))
+            messageLen = sum([len(s) if type(s) is str else 0 for s in o[1][2]])
+            delay *= math.log(messageLen) if messageLen != 0 else 1
             gevent.spawn_later(delay, queues[j].put_nowait, (i,o))
         return _send
 

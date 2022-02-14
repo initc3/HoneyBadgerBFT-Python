@@ -1,6 +1,7 @@
 __author__ = 'aluex' 
-
-from gevent import Greenlet
+from gevent import monkey
+monkey.patch_all()
+from gevent import Greenlet, sleep
 from gevent.queue import Queue, Empty
 from bkr_acs import acs
 from utils import mylog, MonitoredInt, callBackWrap, greenletFunction, \
@@ -321,7 +322,7 @@ def honestParty(pid, N, t, controlChannel, broadcast, receive, send, B = -1):
                 broadcast(eval(msg))  # now the msg is something we mannually send
             mylog("timestampB (%d, %lf)" % (pid, time.time()), verboseLevel=-2)
             if len(transactionCache) < B:  # Let's wait for many transactions. : )
-                time.sleep(0.5)
+                sleep(0.5)
                 print "Not enough transactions", len(transactionCache)
                 continue
 
