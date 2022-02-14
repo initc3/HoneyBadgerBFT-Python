@@ -5,7 +5,7 @@ monkey.patch_all()
 import gevent
 from gevent.queue import Queue
 import hashlib
-
+import random
 
 from honeybadgerbft.core.commoncoin import shared_coin
 from honeybadgerbft.core.binaryagreement import binaryagreement
@@ -295,11 +295,11 @@ class PermutedHoneyBadgerBFT(HoneyBadgerBFT):
         logger.debug("permutating")
 
 class RandomizedHoneyBadgerBFT(HoneyBadgerBFT):
-    def _prepare_transaction(self):
+    def _prepare_transaction_buffer(self):
         self.transaction_buffer = random.sample(self.transaction_buffer, len(self.transaction_buffer))
 
 class DistanceHoneyBadgerBFT(HoneyBadgerBFT):
-    def _prepare_transaction(self):
+    def _prepare_transaction_buffer(self):
         self.transaction_buffer = sorted(self.transaction_buffer, key=distance(self.pid / self.N))
         logger.debug("permutating with distance")
 

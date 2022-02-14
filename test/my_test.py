@@ -19,14 +19,10 @@ setup_logging()
 logger = getLogger(LOGGER_NAME)
 
 ### Test asynchronous common subset
-# @mark.parametrize("HB", HONEYBADGERS)
-# @mark.parametrize("N", NUM_OF_NODE_OPTIONS)
-# @mark.parametrize("identical_inputs", NUM_OF_IDENTICAL_INPUTS_OPTIONS)
-# @mark.parametrize("input_sizes", INPUT_SIZES)
-@mark.parametrize("HB", HONEYBADGERS[1:2])
-@mark.parametrize("N", [10])
-@mark.parametrize("identical_inputs", [6])
-@mark.parametrize("input_sizes", [2])
+@mark.parametrize("HB", HONEYBADGERS)
+@mark.parametrize("N", NUM_OF_NODE_OPTIONS)
+@mark.parametrize("identical_inputs", NUM_OF_IDENTICAL_INPUTS_OPTIONS)
+@mark.parametrize("input_sizes", INPUT_SIZES)
 def test_honeybadger_full(HB, N, identical_inputs, input_sizes):
     if N < identical_inputs:
         logger.debug("There can't be more identical_inputs than number of nodes, skipping test")
