@@ -18,7 +18,6 @@ HONEYBADGERS = [("Ordered Honeybadger", HoneyBadgerBFT), ("Permuted Honeybadger"
 setup_logging()
 logger = getLogger(LOGGER_NAME)
 
-### Test asynchronous common subset
 @mark.parametrize("HB", HONEYBADGERS)
 @mark.parametrize("N", NUM_OF_NODE_OPTIONS)
 @mark.parametrize("identical_inputs", NUM_OF_IDENTICAL_INPUTS_OPTIONS)
@@ -43,7 +42,7 @@ def test_honeybadger_full(HB, N, identical_inputs, input_sizes):
             else:
                 txs_to_submit[node_index].append(f'<HBBFT Input Epoch {iter_index} Different Input {node_index} ' + 'a'*input_sizes)
     amount_of_distinct_messages = len(set([msg for l in txs_to_submit for msg in l]))
-    logger.debug(f"Number of distrinct message is {amount_of_distinct_messages}")
+    logger.debug(f"Number of distinct message is {amount_of_distinct_messages}")
 
     badgers, threads = setup_honeybadgers(HB[1], N, amount_of_distinct_messages)
 
@@ -59,13 +58,20 @@ def test_honeybadger_full(HB, N, identical_inputs, input_sizes):
         outs = [threads[i].get() for i in range(N)]
         # Consistency check
         assert len(set(outs)) == 1
-
+        
         time_at_end = datetime.datetime.now().timestamp()
         time_diff = time_at_end - time_at_start
         logger.info(f"Time passed: {time_diff}")
         result = str(round(time_diff, 2))
-        logger.critical(f"Result: {result} (params {HB[0]}, {N}, {identical_inputs}, {input_sizes})")
-        return str(time_diff)[:4]
+
+
+        total_bytes_sent = 0
+        for b in badgers:
+            total_bytes_sent += b.get_bytes_sent()
+        logger.critical(f"Result: bytes_sent={total_bytes_sent},total_time={result} (params {HB[0]}, {N}, {identical_inputs}, {input_sizes})")
+
+        gevent.killall(threads)
+        del badgers
 
     except KeyboardInterrupt:
         gevent.killall(threads)

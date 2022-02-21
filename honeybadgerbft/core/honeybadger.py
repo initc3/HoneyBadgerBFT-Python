@@ -89,14 +89,18 @@ class HoneyBadgerBFT():
         self.transaction_buffer = []
         self._per_round_recv = {}  # Buffer of incoming messages
         self.messages_seen = set()
+        self.bytes_sent = 0
 
     def submit_tx(self, tx):
         """Appends the given transaction to the transaction buffer.
 
         :param tx: Transaction to append to the buffer.
         """
-        print('submit_tx', self.pid, tx)
         self.transaction_buffer.append(tx)
+
+    def get_bytes_sent(self):
+        """Returns the ammount of non empty messages sent"""
+        return self.bytes_sent
 
     def _prepare_transaction_buffer(self):
         pass
@@ -128,8 +132,8 @@ class HoneyBadgerBFT():
         while True:
             # For each round...
             r = self.round
-            logger.debug(str(self.pid) + f"AAAAA round number: {self.round}")
-            logger.debug(str(self.pid) + f"BBBBB transaction buffer with len: {len(self.transaction_buffer)}") 
+            logger.debug(str(self.pid) + f" round number: {self.round}")
+            logger.debug(str(self.pid) + f" transaction buffer with len: {len(self.transaction_buffer)}") 
             if r not in self._per_round_recv:
                 self._per_round_recv[r] = Queue()
 
@@ -138,6 +142,9 @@ class HoneyBadgerBFT():
             if len(self.transaction_buffer):
                 tx_to_send = self.transaction_buffer[:self.B]
                 logger.debug(str(self.pid) + f"Chosen tx_to_send for {self.pid} is {tx_to_send[0][:40]}")
+                for t in tx_to_send:
+                    self.bytes_sent += len(t)
+
             else:
                 tx_to_send = ['']
             logger.debug(str(self.pid) + f"EEEEE transaction_buffer for id {self.pid}: {[t[:40] for t in self.transaction_buffer]}")
@@ -152,10 +159,10 @@ class HoneyBadgerBFT():
             send_r = _make_send(r)
             recv_r = self._per_round_recv[r].get
             new_tx = self._run_round(r, tx_to_send[0], send_r, recv_r)
-            for nino in new_tx:
-                if nino != b'':
-                    logger.debug(str(self.pid) + f'Node id {self.pid} got from his friends: {nino[:40]}')
-                    self.messages_seen.add(nino)
+            for msg_recvd in new_tx:
+                if msg_recvd != b'':
+                    logger.debug(str(self.pid) + f'Node id {self.pid} got from his friends: {msg_recvd[:40]}')
+                    self.messages_seen.add(msg_recvd)
 
             # Remove all of the new transactions from the buffer
             self.transaction_buffer = [_tx for _tx in self.transaction_buffer if _tx not in [t.decode('utf-8') for t in new_tx] and _tx not in tx_to_send]
@@ -165,8 +172,8 @@ class HoneyBadgerBFT():
             # if not self.transaction_buffer:
             logger.debug(f"{self.pid} Up to now: {len(set(self.messages_seen))} out of {self.amount}")
             if len(set(self.messages_seen)) == self.amount:
-                logger.debug(str(self.pid) + f"CCCCC finished with rounds: {self.round}")
-                break   # Only run one round for now
+                logger.debug(str(self.pid) + f" finished with rounds: {self.round}")
+                break
 
     def _run_round(self, r, tx_to_send, send, recv):
         """Run one protocol round.
@@ -200,7 +207,6 @@ class HoneyBadgerBFT():
         rbc_outputs = [Queue(1) for _ in range(N)]
 
         my_rbc_input = Queue(1)
-        print(pid, r, 'tx_to_send:', tx_to_send)
 
         def _setup(j):
             """Setup the sub protocols RBC, BA and common coin.

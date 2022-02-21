@@ -3,3 +3,6 @@ logs/
 .coverage
 docs/_build/
 *.pyc
+important_logs/
+backup_tests/
+our_srcs/__pycache__/
