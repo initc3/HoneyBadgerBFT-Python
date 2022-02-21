@@ -1,6 +1,7 @@
 __author__ = 'aluex'
 
 import subprocess32 as subprocess
+from gevent import sleep
 import time
 def runOnTransaction(N, t, Tx):
     retry = True
@@ -15,7 +16,7 @@ def runOnTransaction(N, t, Tx):
             retry = False
         except subprocess.TimeoutExpired:
             retry = True
-            time.sleep(2)
+            sleep(2)
     q = subprocess.check_output(['python', 'process.py', 'msglog.TorMultiple'])
     print N, t, Tx, q.replace('\n', ' ')
 

@@ -1,8 +1,11 @@
 from collections import namedtuple
 from enum import Enum
-
+from gevent import monkey
+monkey.patch_all()
 import gevent
 from gevent.queue import Queue
+import hashlib
+import random
 
 from honeybadgerbft.core.commoncoin import shared_coin
 from honeybadgerbft.core.binaryagreement import binaryagreement
@@ -10,6 +13,8 @@ from honeybadgerbft.core.reliablebroadcast import reliablebroadcast
 from honeybadgerbft.core.commonsubset import commonsubset
 from honeybadgerbft.core.honeybadger_block import honeybadger_block
 from honeybadgerbft.exceptions import UnknownTagError
+from our_srcs.consts import *
+from logging import getLogger; logger=getLogger(LOGGER_NAME)
 
 
 class BroadcastTag(Enum):
@@ -43,6 +48,8 @@ def broadcast_receiver_loop(recv_func, recv_queues):
         broadcast_receiver(recv_func, recv_queues)
 
 
+
+
 class HoneyBadgerBFT():
     r"""HoneyBadgerBFT object used to run the protocol.
 
@@ -64,7 +71,7 @@ class HoneyBadgerBFT():
     :param recv:
     """
 
-    def __init__(self, sid, pid, B, N, f, sPK, sSK, ePK, eSK, send, recv):
+    def __init__(self, sid, pid, B, N, f, sPK, sSK, ePK, eSK, send, recv, amount=-1):
         self.sid = sid
         self.pid = pid
         self.B = B
@@ -76,18 +83,27 @@ class HoneyBadgerBFT():
         self.eSK = eSK
         self._send = send
         self._recv = recv
+        self.amount = amount
 
         self.round = 0  # Current block number
         self.transaction_buffer = []
         self._per_round_recv = {}  # Buffer of incoming messages
+        self.messages_seen = set()
+        self.bytes_sent = 0
 
     def submit_tx(self, tx):
         """Appends the given transaction to the transaction buffer.
 
         :param tx: Transaction to append to the buffer.
         """
-        print('submit_tx', self.pid, tx)
         self.transaction_buffer.append(tx)
+
+    def get_bytes_sent(self):
+        """Returns the ammount of non empty messages sent"""
+        return self.bytes_sent
+
+    def _prepare_transaction_buffer(self):
+        pass
 
     def run(self):
         """Run the HoneyBadgerBFT protocol."""
@@ -113,15 +129,25 @@ class HoneyBadgerBFT():
                 # round and will stop participating!
 
         self._recv_thread = gevent.spawn(_recv)
-
         while True:
             # For each round...
             r = self.round
+            logger.debug(str(self.pid) + f" round number: {self.round}")
+            logger.debug(str(self.pid) + f" transaction buffer with len: {len(self.transaction_buffer)}") 
             if r not in self._per_round_recv:
                 self._per_round_recv[r] = Queue()
 
             # Select all the transactions (TODO: actual random selection)
-            tx_to_send = self.transaction_buffer[:self.B]
+            self._prepare_transaction_buffer()
+            if len(self.transaction_buffer):
+                tx_to_send = self.transaction_buffer[:self.B]
+                logger.debug(str(self.pid) + f"Chosen tx_to_send for {self.pid} is {tx_to_send[0][:40]}")
+                for t in tx_to_send:
+                    self.bytes_sent += len(t)
+
+            else:
+                tx_to_send = ['']
+            logger.debug(str(self.pid) + f"EEEEE transaction_buffer for id {self.pid}: {[t[:40] for t in self.transaction_buffer]}")
 
             # TODO: Wait a bit if transaction buffer is not full
 
@@ -133,14 +159,21 @@ class HoneyBadgerBFT():
             send_r = _make_send(r)
             recv_r = self._per_round_recv[r].get
             new_tx = self._run_round(r, tx_to_send[0], send_r, recv_r)
-            print('new_tx:', new_tx)
+            for msg_recvd in new_tx:
+                if msg_recvd != b'':
+                    logger.debug(str(self.pid) + f'Node id {self.pid} got from his friends: {msg_recvd[:40]}')
+                    self.messages_seen.add(msg_recvd)
 
             # Remove all of the new transactions from the buffer
-            self.transaction_buffer = [_tx for _tx in self.transaction_buffer if _tx not in new_tx]
+            self.transaction_buffer = [_tx for _tx in self.transaction_buffer if _tx not in [t.decode('utf-8') for t in new_tx] and _tx not in tx_to_send]
+            logger.debug(str(self.pid) + f"New transaction buffer after getting messages for id {self.pid}: {[t[:40] for t in self.transaction_buffer]}")
 
             self.round += 1     # Increment the round
-            if self.round >= 3:
-                break   # Only run one round for now
+            # if not self.transaction_buffer:
+            logger.debug(f"{self.pid} Up to now: {len(set(self.messages_seen))} out of {self.amount}")
+            if len(set(self.messages_seen)) == self.amount:
+                logger.debug(str(self.pid) + f" finished with rounds: {self.round}")
+                break
 
     def _run_round(self, r, tx_to_send, send, recv):
         """Run one protocol round.
@@ -174,7 +207,6 @@ class HoneyBadgerBFT():
         rbc_outputs = [Queue(1) for _ in range(N)]
 
         my_rbc_input = Queue(1)
-        print(pid, r, 'tx_to_send:', tx_to_send)
 
         def _setup(j):
             """Setup the sub protocols RBC, BA and common coin.
@@ -222,19 +254,16 @@ class HoneyBadgerBFT():
         # N instances of ABA, RBC
         for j in range(N):
             _setup(j)
-
         # One instance of TPKE
         def tpke_bcast(o):
             """Threshold encryption broadcast."""
             broadcast(('TPKE', 0, o))
 
         tpke_recv = Queue()
-
         # One instance of ACS
         acs = gevent.spawn(commonsubset, pid, N, f, rbc_outputs,
                            [_.put_nowait for _ in aba_inputs],
                            [_.get for _ in aba_outputs])
-
         recv_queues = BroadcastReceiverQueues(
             ACS_COIN=coin_recvs,
             ACS_ABA=aba_recvs,
@@ -242,10 +271,41 @@ class HoneyBadgerBFT():
             TPKE=tpke_recv,
         )
         gevent.spawn(broadcast_receiver_loop, recv, recv_queues)
-
         _input = Queue(1)
         _input.put(tx_to_send)
         return honeybadger_block(pid, self.N, self.f, self.ePK, self.eSK,
                                  _input.get,
                                  acs_in=my_rbc_input.put_nowait, acs_out=acs.get,
                                  tpke_bcast=tpke_bcast, tpke_recv=tpke_recv.get)
+
+
+def permute_list(lst, index):
+    return lst[index:] + lst[:index]
+
+def sha256(s):
+    return hashlib.sha256(s.encode()).digest().hex()
+
+def distance(frac):
+    def dist(s):
+        return abs(int((2**256) * frac)  - int.from_bytes(hashlib.sha256(s.encode()).digest(), 'big'))
+    return dist
+
+class ImprovedHoneyBadgerBFT(HoneyBadgerBFT):
+    def _prepare_transaction_buffer(self):
+        self.transaction_buffer = sorted(self.transaction_buffer, key=sha256, reverse=(self.pid%2 == 1))
+
+class PermutedHoneyBadgerBFT(HoneyBadgerBFT):
+    def _prepare_transaction_buffer(self):
+        self.transaction_buffer = sorted(self.transaction_buffer, key=sha256)
+        self.transaction_buffer = permute_list(self.transaction_buffer, int((self.pid / self.N) * self.N))
+        logger.debug("permutating")
+
+class RandomizedHoneyBadgerBFT(HoneyBadgerBFT):
+    def _prepare_transaction_buffer(self):
+        self.transaction_buffer = random.sample(self.transaction_buffer, len(self.transaction_buffer))
+
+class DistanceHoneyBadgerBFT(HoneyBadgerBFT):
+    def _prepare_transaction_buffer(self):
+        self.transaction_buffer = sorted(self.transaction_buffer, key=distance(self.pid / self.N))
+        logger.debug("permutating with distance")
+
