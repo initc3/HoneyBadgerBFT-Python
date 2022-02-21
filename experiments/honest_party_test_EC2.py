@@ -1,6 +1,6 @@
 #!/usr/bin/python
 __author__ = 'aluex'
-from gevent import monkey
+from gevent import monkey, sleep
 monkey.patch_all()
 
 from gevent.queue import *
@@ -267,7 +267,7 @@ def client_test_freenet(N, t, options):
             finally:
                 print "Consensus Finished"
 
-        s = sched.scheduler(time.time, time.sleep)
+        s = sched.scheduler(time.time, sleep)
 
         time_now = time.time()
         delay = options.delaytime - time_now

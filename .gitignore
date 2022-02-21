@@ -1,22 +1,8 @@
-# IDE junk files
-.idea/*
-*.pyc
-*~
-#*#
-tmp*
-ec2/logs/*
-ec2/logs_old/*
-ec2/hosts
-*_keys
-*.keys
-
-# Unit test / coverage reports
-.cache
+logs/
+*__pycache__*
 .coverage
-.coverage.*
-coverage.xml
-htmlcov/
-.pytest_cache
-
-# Sphinx documentation
 docs/_build/
+*.pyc
+important_logs/
+backup_tests/
+our_srcs/__pycache__/
